@@ -394,8 +394,6 @@ public class NugetGalleryFacetImpl
   {
     final OrientVertex bucket = storageTx.getBucket();
     final OrientVertex component = createOrUpdateComponent(storageTx, bucket, recordMetadata);
-    putInIndex(component);
-
     createOrUpdateAsset(storageTx, bucket, component, packageStream);
     putInIndex(component);
     return component;
