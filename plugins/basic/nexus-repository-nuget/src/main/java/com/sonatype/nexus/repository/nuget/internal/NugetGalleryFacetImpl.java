@@ -198,7 +198,7 @@ public class NugetGalleryFacetImpl
         xml.append(interpolateTemplate(ODataTemplates.NUGET_ENTRY, data));
         if (n == ODataUtils.PAGE_SIZE) {
           xml.append("  <link rel=\"next\" href=\"").append(base).append('/').append(operation);
-          xml.append('?').append(ODataFeedUtils.skipLink(data, query)).append("\"/>\n");
+          xml.append("()?").append(ODataFeedUtils.skipLink(data, query)).append("\"/>\n");
           break;
         }
       }
