@@ -17,7 +17,7 @@
  *
  * @since 3.0
  */
-Ext.define('NX.coreui_legacy.model.SearchResult', {
+Ext.define('NX.coreui.model.SearchResult', {
   extend: 'Ext.data.Model',
   idProperty: 'groupingKey',
   fields: [

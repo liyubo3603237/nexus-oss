@@ -17,9 +17,9 @@
  *
  * @since 3.0
  */
-Ext.define('NX.coreui_legacy.store.SearchResult', {
+Ext.define('NX.coreui.store.SearchResult', {
   extend: 'Ext.data.Store',
-  model: 'NX.coreui_legacy.model.SearchResult',
+  model: 'NX.coreui.model.SearchResult',
 
   proxy: {
     type: 'direct',

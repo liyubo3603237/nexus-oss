@@ -23,17 +23,15 @@ Ext.define('NX.coreui.controller.HealthCheckSearch', {
     'Ext.grid.column.Column',
     'NX.Conditions',
     'NX.util.Url',
-    'NX.I18n',
-    'NX.coreui_legacy.model.SearchResult',
-    'NX.coreui_legacy.store.SearchResult'
+    'NX.I18n'
   ],
 
   models: [
-    'NX.coreui_legacy.model.SearchResult',
+    'SearchResult',
     'SearchResultVersion'
   ],
   stores: [
-    'NX.coreui_legacy.store.SearchResult',
+    'SearchResult',
     'SearchResultVersion'
   ],
   refs: [
@@ -49,7 +47,7 @@ Ext.define('NX.coreui.controller.HealthCheckSearch', {
 
     me.listen({
       store: {
-        '#NX.coreui_legacy.store.SearchResult': {
+        '#SearchResult': {
           load: me.setHealthCheckSearchResultFields
         },
         '#SearchResultVersion': {
@@ -209,7 +207,7 @@ Ext.define('NX.coreui.controller.HealthCheckSearch', {
   /**
    * @private
    * Render most popular version field.
-   * @param {NX.coreui_legacy.model.SearchResult} searchResultModel search result model
+   * @param {NX.coreui.model.SearchResult} searchResultModel search result model
    * @returns {string} rendered value
    */
   renderMostPopularVersion: function(searchResultModel) {
@@ -231,7 +229,7 @@ Ext.define('NX.coreui.controller.HealthCheckSearch', {
    * Render age column.
    * @param {number} value age
    * @param metadata column metadata
-   * @param {NX.coreui_legacy.model.SearchResultVersion} searchResultVersionModel search result version model
+   * @param {NX.coreui.model.SearchResultVersion} searchResultVersionModel search result version model
    * @returns {string} rendered value
    */
   renderAgeColumn: function(value, metadata, searchResultVersionModel) {
@@ -264,7 +262,7 @@ Ext.define('NX.coreui.controller.HealthCheckSearch', {
    * Render popularity column.
    * @param {number} value popularity
    * @param metadata column metadata
-   * @param {NX.coreui_legacy.model.SearchResultVersion} searchResultVersionModel search result version model
+   * @param {NX.coreui.model.SearchResultVersion} searchResultVersionModel search result version model
    * @returns {string} rendered value
    */
   renderPopularityColumn: function(value, metadata, searchResultVersionModel) {
@@ -294,7 +292,7 @@ Ext.define('NX.coreui.controller.HealthCheckSearch', {
   /**
    * @private
    * Render value based on preconditions.
-   * @param {NX.coreui_legacy.model.SearchResult|NX.coreui.model.SearchResultVersion} model search result / version model
+   * @param {NX.coreui.model.SearchResult|NX.coreui.model.SearchResultVersion} model search result / version model
    * @param metadata column metadata
    * @returns {*} rendered value
    */
