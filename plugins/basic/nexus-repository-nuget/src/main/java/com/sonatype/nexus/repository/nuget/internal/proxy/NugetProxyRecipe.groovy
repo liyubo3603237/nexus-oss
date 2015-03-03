@@ -19,9 +19,12 @@ import org.sonatype.nexus.repository.Format
 import org.sonatype.nexus.repository.Repository
 import org.sonatype.nexus.repository.Type
 import org.sonatype.nexus.repository.httpclient.HttpClientFacet
+import org.sonatype.nexus.repository.proxy.ProxyHandler
 import org.sonatype.nexus.repository.types.ProxyType
 import org.sonatype.nexus.repository.view.ConfigurableViewFacet
+import org.sonatype.nexus.repository.view.Route
 import org.sonatype.nexus.repository.view.Router
+import org.sonatype.nexus.repository.view.matchers.token.TokenMatcher
 
 import javax.annotation.Nonnull
 import javax.inject.Inject
@@ -53,6 +56,9 @@ class NugetProxyRecipe
   Provider<HttpClientFacet> httpClientFacet
 
   @Inject
+  ProxyHandler proxyHandler
+
+  @Inject
   public NugetProxyRecipe(@Named(ProxyType.NAME) final Type type,
                           @Named(NugetFormat.NAME) final Format format)
   {
@@ -75,7 +81,13 @@ class NugetProxyRecipe
 
     addFeedRoutes(router)
 
-    addPackageRoute(router)
+    // just like the default package route, but send to proxyHandler
+    router.route(new Route.Builder()
+        .matcher(new TokenMatcher("/{id}/{version}"))
+        .handler(timingHandler)
+        .handler(proxyHandler)
+        .handler(notFound())
+        .create())
 
     // By default, return a 404
     router.defaultHandlers(notFound())

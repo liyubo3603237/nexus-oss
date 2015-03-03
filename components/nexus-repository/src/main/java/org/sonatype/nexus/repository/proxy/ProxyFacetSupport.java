@@ -150,8 +150,10 @@ public abstract class ProxyFacetSupport
 
   @Nullable
   protected Payload fetch(final Context context) throws IOException {
-    final String url = getUrl(context);
+    return fetch(getUrl(context), context);
+  }
 
+  protected Payload fetch(String url, Context context) throws IOException {
     HttpClient client = httpClient.getHttpClient();
 
     HttpGet request = new HttpGet(remoteUrl.resolve(url));

@@ -13,13 +13,20 @@
 package com.sonatype.nexus.repository.nuget.internal.proxy;
 
 import java.io.IOException;
+import java.net.URI;
+import java.util.Map;
 
 import javax.annotation.Nonnull;
+import javax.inject.Inject;
+
+import com.sonatype.nexus.repository.nuget.internal.NugetGalleryFacet;
+import com.sonatype.nexus.repository.nuget.internal.odata.ODataConsumer;
 
 import org.sonatype.nexus.repository.content.InvalidContentException;
 import org.sonatype.nexus.repository.proxy.ProxyFacetSupport;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Payload;
+import org.sonatype.nexus.repository.view.matchers.token.TokenMatcher;
 
 import org.joda.time.DateTime;
 
@@ -31,31 +38,83 @@ import org.joda.time.DateTime;
 public class NugetProxyFacet
     extends ProxyFacetSupport
 {
+  private final NugetFeedFetcher fetcher;
+
+  @Inject
+  public NugetProxyFacet(NugetFeedFetcher fetcher) {
+    this.fetcher = fetcher;
+  }
+
   @Override
   protected Payload getCachedPayload(final Context context) throws IOException {
-    // TODO via NEXUS-8164
-    return null;
+    String[] coords = coords(context);
+    return gallery().get(coords[0], coords[1]);
+  }
+
+  @Override
+  protected Payload fetch(final Context context) throws IOException {
+    // Here we override the default fetch behavior because we need to first fetch
+    // the remote entry and cache it, then from that, determine the remote URL of
+    // the actual package content, and get it.
+
+    // Determine the remote entry URL
+    String[] coords = coords(context);
+    String suffix = "Packages(Id='" + coords[0] + "',Version='" + coords[1] + "')";
+    URI remoteEntryUri = getRemoteUrl().resolve(suffix);
+
+    // Cache the metadata from the remote, grabbing the content location as we go
+    final StringBuilder contentLocation = new StringBuilder();
+    fetcher.cachePackageFeed(getRepository(), remoteEntryUri, 2, true, new ODataConsumer()
+    {
+      @Override
+      public void consume(final Map<String, String> data) {
+        if (contentLocation.length() == 0) {
+          contentLocation.append(data.get("LOCATION"));
+        }
+        gallery().putMetadata(data);
+      }
+    });
+    if (contentLocation.length() == 0) {
+      throw new IOException("Package content not found in remote repository");
+    }
+
+    // Request the remote package content and return it as a payload
+    return fetch(contentLocation.toString(), context);
   }
 
   @Override
   protected void store(final Context context, final Payload payload) throws IOException, InvalidContentException {
-    // TODO via NEXUS-8164
+    // The metadata will have been cached by this time.
+    // All we need to do here is find the component in orient and call
+    // createOrUpdateAsset(storageTx, bucket, component, payload.openInputStream())
+
+    String[] coords = coords(context);
+    // TODO: Actually store the package content
   }
 
   @Override
   protected DateTime getCachedPayloadLastUpdatedDate(final Context context) throws IOException {
-    // TODO via NEXUS-8164
-    return null;
+    String[] coords = coords(context);
+    return gallery().getLastUpdatedDate(coords[0], coords[1]);
   }
 
   @Override
   protected void indicateUpToDate(final Context context) throws IOException {
-    // TODO via NEXUS-8164
+    // TODO: this will never happen; super.fetch's http GET request isn't conditional.
   }
 
   @Override
   protected String getUrl(final @Nonnull Context context) {
-    // TODO via NEXUS-8164
-    return null;
+    // Unnecessary to implement this, as we override fetch in a way that doesn't use it
+    throw new UnsupportedOperationException();
+  }
+
+  private NugetGalleryFacet gallery() {
+    return getRepository().facet(NugetGalleryFacet.class);
+  }
+
+  private static String[] coords(Context context) {
+    Map<String, String> tokens = context.getAttributes().require(TokenMatcher.State.class).getTokens();
+    return new String[] { tokens.get("id"), tokens.get("version") };
   }
 }

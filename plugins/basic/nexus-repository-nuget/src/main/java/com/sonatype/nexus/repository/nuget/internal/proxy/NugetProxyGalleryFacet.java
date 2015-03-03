@@ -46,6 +46,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.apache.http.client.utils.URIBuilder;
+import org.joda.time.DateTime;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
 import static com.google.common.base.Objects.equal;
@@ -147,6 +148,10 @@ public class NugetProxyGalleryFacet
       entryXml = super.entry(base, id, version);
     }
     return entryXml;
+  }
+
+  public DateTime getLastUpdatedDate(String id, String version) {
+    return null;
   }
 
   private URI nugetQuery(final String path) {

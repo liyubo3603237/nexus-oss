@@ -21,6 +21,8 @@ import javax.annotation.Nullable;
 import org.sonatype.nexus.repository.Facet;
 import org.sonatype.nexus.repository.view.Payload;
 
+import org.joda.time.DateTime;
+
 /**
  * Provides persistent storage for Nuget content.
  *
@@ -40,6 +42,11 @@ public interface NugetGalleryFacet
    */
   @Nullable
   Payload get(String id, String version) throws IOException;
+
+  /**
+   * Gets the last updated date of a package, or {@code null} if not found.
+   */
+  DateTime getLastUpdatedDate(String id, String version);
 
   /**
    * Delete a package and return whether it existed.

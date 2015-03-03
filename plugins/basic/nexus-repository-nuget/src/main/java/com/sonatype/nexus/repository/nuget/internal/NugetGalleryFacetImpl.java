@@ -69,6 +69,7 @@ import org.eclipse.aether.util.version.GenericVersionScheme;
 import org.eclipse.aether.version.InvalidVersionSpecificationException;
 import org.eclipse.aether.version.Version;
 import org.eclipse.aether.version.VersionScheme;
+import org.joda.time.DateTime;
 import org.odata4j.producer.InlineCount;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -320,8 +321,10 @@ public class NugetGalleryFacetImpl
       if (component == null) {
         return null;
       }
-
-      OrientVertex asset = requireAsset(component);
+      OrientVertex asset = firstAsset(component);
+      if (asset == null) {
+        return null;
+      }
 
       String blobRefString = asset.getProperty(P_BLOB_REF);
       checkState(blobRefString != null);
@@ -331,6 +334,27 @@ public class NugetGalleryFacetImpl
       String contentType = asset.getProperty(P_CONTENT_TYPE);
 
       return new StreamPayload(blob.getInputStream(), blob.getMetrics().getContentSize(), contentType);
+    }
+  }
+
+  @Override
+  public DateTime getLastUpdatedDate(final String id, final String version) {
+    checkNotNull(id);
+    checkNotNull(version);
+
+    try (StorageTx tx = openStorageTx()) {
+      OrientVertex component = findComponent(tx, id, version);
+      if (component == null) {
+        return null;
+      }
+      OrientVertex asset = firstAsset(component);
+      if (asset == null) {
+        return null;
+      }
+
+      final NestedAttributesMap nugetAttributes = nugetAttribs(tx, asset);
+      Date date = nugetAttributes.get(P_LAST_UPDATED, Date.class);
+      return new DateTime(checkNotNull(date));
     }
   }
 
@@ -377,10 +401,8 @@ public class NugetGalleryFacetImpl
   }
 
   @VisibleForTesting
-  OrientVertex requireAsset(final OrientVertex component) {
-    OrientVertex asset = Iterables.getFirst(openStorageTx().findAssets(component), null);
-    checkState(asset != null);
-    return asset;
+  OrientVertex firstAsset(final OrientVertex component) {
+    return Iterables.getFirst(openStorageTx().findAssets(component), null);
   }
 
   @VisibleForTesting
