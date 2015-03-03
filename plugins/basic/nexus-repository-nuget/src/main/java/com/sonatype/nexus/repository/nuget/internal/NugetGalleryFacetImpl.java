@@ -214,10 +214,9 @@ public class NugetGalleryFacetImpl
     try (StorageTx tx = openStorageTx()) {
       final OrientVertex bucket = tx.getBucket();
       final OrientVertex component = createOrUpdateComponent(tx, bucket, metadata);
-      putInIndex(component);
       maintainAggregateInfo(tx, metadata.get(ID));
-
       tx.commit();
+      putInIndex(component);
     }
   }
 
