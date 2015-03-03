@@ -12,20 +12,41 @@
  */
 package org.sonatype.nexus.repository.httpclient;
 
-import org.sonatype.nexus.repository.Facet;
-
-import org.apache.http.client.HttpClient;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * HTTP client facet.
- *
  * @since 3.0
  */
-@Facet.Exposed
-public interface HttpClientFacet
-  extends Facet
+public class RemoteConnectionStatus
 {
-  HttpClient getHttpClient();
+  private final String description;
 
-  RemoteConnectionStatus getStatus();
+  private final String reason;
+
+  public RemoteConnectionStatus(final String description) {
+    this(description, null);
+  }
+
+  public RemoteConnectionStatus(final String description, final String reason) {
+    this.description = checkNotNull(description);
+    this.reason = reason;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public String getReason() {
+    return reason;
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder(description);
+    if (reason != null) {
+      sb.append(" - ").append(reason);
+    }
+    return sb.toString();
+  }
+
 }
