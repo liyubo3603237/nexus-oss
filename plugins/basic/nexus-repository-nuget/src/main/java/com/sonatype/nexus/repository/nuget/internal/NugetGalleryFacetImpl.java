@@ -298,6 +298,7 @@ public class NugetGalleryFacetImpl
 
       boolean isNew = component.getIdentity().isNew();  // must check before commit
       storageTx.commit();
+      putInIndex(component);
 
       if (isNew) {
         getEventBus().post(new ComponentCreatedEvent(component, getRepository()));
@@ -394,7 +395,6 @@ public class NugetGalleryFacetImpl
     final OrientVertex bucket = storageTx.getBucket();
     final OrientVertex component = createOrUpdateComponent(storageTx, bucket, recordMetadata);
     createOrUpdateAsset(storageTx, bucket, component, packageStream);
-    putInIndex(component);
     return component;
   }
 
