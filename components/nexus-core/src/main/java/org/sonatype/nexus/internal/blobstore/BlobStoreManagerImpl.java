@@ -218,12 +218,12 @@ public class BlobStoreManagerImpl
 
   private void track(final String name, final BlobStore blobStore)
   {
-    log.debug("Tracking {}", name);
+    log.debug("Tracking: {}", name);
     stores.put(name, blobStore);
   }
 
   private void untrack(final String name) {
-    log.debug("Untracking: ,{}", name);
+    log.debug("Untracking: {}", name);
     stores.remove(name);
   }
 
