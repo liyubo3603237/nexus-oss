@@ -59,7 +59,7 @@ public class SearchServiceImpl
     implements SearchService
 {
 
-  private static final String TYPE = "component";
+  public static final String TYPE = "component";
 
   private final Provider<Client> client;
 

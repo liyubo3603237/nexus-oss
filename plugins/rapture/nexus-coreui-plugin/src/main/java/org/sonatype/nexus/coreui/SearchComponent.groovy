@@ -26,6 +26,7 @@ import org.sonatype.nexus.coreui.search.SearchContribution
 import org.sonatype.nexus.extdirect.DirectComponent
 import org.sonatype.nexus.extdirect.DirectComponentSupport
 import org.sonatype.nexus.extdirect.model.StoreLoadParameters
+import org.sonatype.nexus.repository.search.CustomFilterBuilders
 import org.sonatype.nexus.repository.search.SearchService
 
 import javax.annotation.Nullable
@@ -34,7 +35,6 @@ import javax.inject.Named
 import javax.inject.Singleton
 import javax.validation.ValidationException
 
-import static org.sonatype.nexus.repository.storage.StorageFacet.P_ATTRIBUTES
 import static org.sonatype.nexus.repository.storage.StorageFacet.P_FORMAT
 import static org.sonatype.nexus.repository.storage.StorageFacet.P_GROUP
 import static org.sonatype.nexus.repository.storage.StorageFacet.P_NAME
@@ -76,7 +76,6 @@ extends DirectComponentSupport
     List<SearchResultXO> gas = []
     for (SearchHit hit : browse(query)) {
       if (gas.size() < 100) {
-        // TODO check security
         def group = hit.source[P_GROUP]
         def name = hit.source[P_NAME]
         def ga = new SearchResultXO(
@@ -114,7 +113,6 @@ extends DirectComponentSupport
 
     def versions = [] as SortedSet<SearchResultVersionXO>
     browse(query).each { hit ->
-      // TODO check security
       def group = hit.source[P_GROUP]
       def name = hit.source[P_NAME]
       versions << new SearchResultVersionXO(
@@ -165,6 +163,7 @@ extends DirectComponentSupport
     if (!queryBuilder.hasClauses() && !filterBuilder.hasClauses()) {
       return null
     }
+    filterBuilder.must(CustomFilterBuilders.visibleToCurrentUserFilter());
     FilteredQueryBuilder query = QueryBuilders.filteredQuery(
         queryBuilder.hasClauses() ? queryBuilder : null,
         filterBuilder.hasClauses() ? filterBuilder : null
