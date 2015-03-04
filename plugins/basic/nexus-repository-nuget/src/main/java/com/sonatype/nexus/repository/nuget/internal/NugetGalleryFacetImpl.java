@@ -45,7 +45,6 @@ import org.sonatype.nexus.repository.MissingFacetException;
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.proxy.ProxyFacet;
 import org.sonatype.nexus.repository.search.ComponentMetadataFactory;
-import org.sonatype.nexus.repository.search.SearchFacet;
 import org.sonatype.nexus.repository.storage.ComponentCreatedEvent;
 import org.sonatype.nexus.repository.storage.ComponentDeletedEvent;
 import org.sonatype.nexus.repository.storage.ComponentUpdatedEvent;
@@ -113,8 +112,7 @@ public class NugetGalleryFacetImpl
   private final ComponentMetadataFactory componentMetadataFactory;
 
   @Inject
-  public NugetGalleryFacetImpl(final ComponentMetadataFactory componentMetadataFactory)
-  {
+  public NugetGalleryFacetImpl(final ComponentMetadataFactory componentMetadataFactory) {
     this.componentMetadataFactory = checkNotNull(componentMetadataFactory);
   }
 
@@ -217,13 +215,11 @@ public class NugetGalleryFacetImpl
       final OrientVertex component = createOrUpdateComponent(tx, bucket, metadata);
       maintainAggregateInfo(tx, metadata.get(ID));
       tx.commit();
-      putInIndex(component);
     }
   }
 
   @VisibleForTesting
-  Map<String, ?> toData(final NestedAttributesMap nugetAttributes, Map<String, String> extra)
-  {
+  Map<String, ?> toData(final NestedAttributesMap nugetAttributes, Map<String, String> extra) {
     Map<String, Object> data = Maps.newHashMap();
 
     for (Entry<String, Object> attrib : nugetAttributes.entries()) {
@@ -299,7 +295,6 @@ public class NugetGalleryFacetImpl
 
       boolean isNew = component.getIdentity().isNew();  // must check before commit
       storageTx.commit();
-      putInIndex(component);
 
       if (isNew) {
         getEventBus().post(new ComponentCreatedEvent(component, getRepository()));
@@ -373,7 +368,6 @@ public class NugetGalleryFacetImpl
       tx.deleteVertex(component);
       tx.commit();
 
-      deleteFromIndex(component);
       getEventBus().post(new ComponentDeletedEvent(component, getRepository()));
       return true;
     }
@@ -412,7 +406,7 @@ public class NugetGalleryFacetImpl
 
   @VisibleForTesting
   OrientVertex createOrUpdatePackage(final StorageTx storageTx, final Map<String, String> recordMetadata,
-                             final InputStream packageStream)
+                                     final InputStream packageStream)
   {
     final OrientVertex bucket = storageTx.getBucket();
     final OrientVertex component = createOrUpdateComponent(storageTx, bucket, recordMetadata);
@@ -635,8 +629,7 @@ public class NugetGalleryFacetImpl
     return InlineCount.ALLPAGES.equals(parseInlineCount(query.get("$inlinecount")));
   }
 
-  private int executeCount(final ComponentQuery query, final StorageTx storageTx)
-  {
+  private int executeCount(final ComponentQuery query, final StorageTx storageTx) {
     return (int) storageTx.countComponents(query.getWhere(), query.getParameters(), getRepositories(),
         query.getQuerySuffix());
   }
@@ -652,26 +645,6 @@ public class NugetGalleryFacetImpl
 
   protected Iterable<Repository> getProxyRepositories() {
     return Iterables.filter(getRepositories(), new HasFacet(ProxyFacet.class));
-  }
-
-  @VisibleForTesting
-  void putInIndex(final OrientVertex component) {
-    try {
-      getRepository().facet(SearchFacet.class).put(componentMetadataFactory.from(component));
-    }
-    catch (MissingFacetException e) {
-      // skip indexing if no search facet
-    }
-  }
-
-  @VisibleForTesting
-  void deleteFromIndex(final OrientVertex component) {
-    try {
-      getRepository().facet(SearchFacet.class).delete(component.getId().toString());
-    }
-    catch (MissingFacetException e) {
-      // skip indexing if no search facet
-    }
   }
 
   @VisibleForTesting
