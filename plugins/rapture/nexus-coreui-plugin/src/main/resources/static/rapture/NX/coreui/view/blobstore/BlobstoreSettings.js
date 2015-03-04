@@ -10,44 +10,21 @@
  * of Sonatype, Inc. Apache Maven is a trademark of the Apache Software Foundation. M2eclipse is a trademark of the
  * Eclipse Foundation. All other trademarks are the property of their respective owners.
  */
-
-package org.sonatype.nexus.blobstore.api;
-
-import org.sonatype.sisu.goodies.lifecycle.Lifecycle;
+/*global Ext, NX*/
 
 /**
- * {@link BlobStore} manager.
+ * Blobstore "Settings" panel.
  *
  * @since 3.0
  */
-public interface BlobStoreManager
-  extends Lifecycle
-{
-  /**
-   * @return all BlobStores
-   */
-  Iterable<BlobStore> browse();
+Ext.define('NX.coreui.view.blobstore.BlobstoreSettings', {
+  extend: 'NX.view.SettingsPanel',
+  alias: 'widget.nx-coreui-blobstore-settings',
+  requires: [
+    'NX.I18n'
+  ],
 
-  /**
-   * Create a new BlobStore
-   * @param blobStoreConfiguration
-   * @return newly created BlobStore
-   * @throws Exception
-   */
-  BlobStore create(BlobStoreConfiguration blobStoreConfiguration) throws Exception;
+  title: NX.I18n.get('ADMIN_BLOBSTORES_DETAILS_SETTINGS_TAB'),
 
-  /**
-   * Delete an existing BlobStore
-   * @param blobStoreConfiguration
-   * @throws Exception
-   */
-  void delete(BlobStoreConfiguration blobStoreConfiguration) throws Exception;
-
-  /**
-   * Lookup a BlobStore by name
-   * @param name
-   * @return
-   */
-  BlobStore get(String name);
-  
-}
+  items: { xtype: 'nx-coreui-blobstore-settings-form' }
+});

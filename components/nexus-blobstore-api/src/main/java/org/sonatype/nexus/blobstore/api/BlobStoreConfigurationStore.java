@@ -10,44 +10,33 @@
  * of Sonatype, Inc. Apache Maven is a trademark of the Apache Software Foundation. M2eclipse is a trademark of the
  * Eclipse Foundation. All other trademarks are the property of their respective owners.
  */
-
 package org.sonatype.nexus.blobstore.api;
+
+import java.util.List;
 
 import org.sonatype.sisu.goodies.lifecycle.Lifecycle;
 
 /**
- * {@link BlobStore} manager.
+ * Service for managing BlobStoreConfigurations.
  *
- * @since 3.0
+ * since 3.0
  */
-public interface BlobStoreManager
-  extends Lifecycle
+public interface BlobStoreConfigurationStore
+    extends Lifecycle
 {
-  /**
-   * @return all BlobStores
-   */
-  Iterable<BlobStore> browse();
 
   /**
-   * Create a new BlobStore
-   * @param blobStoreConfiguration
-   * @return newly created BlobStore
-   * @throws Exception
+   * @return all BlobStoreConfigurations
    */
-  BlobStore create(BlobStoreConfiguration blobStoreConfiguration) throws Exception;
+  List<BlobStoreConfiguration> list();
 
   /**
-   * Delete an existing BlobStore
-   * @param blobStoreConfiguration
-   * @throws Exception
+   * Persist a new BlobStoreConfiguration.
    */
-  void delete(BlobStoreConfiguration blobStoreConfiguration) throws Exception;
+  void create(BlobStoreConfiguration configuration);
 
   /**
-   * Lookup a BlobStore by name
-   * @param name
-   * @return
+   * Delete an existing BlobStoreConfiguration.
    */
-  BlobStore get(String name);
-  
+  void delete(BlobStoreConfiguration configuration);
 }

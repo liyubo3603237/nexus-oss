@@ -10,44 +10,27 @@
  * of Sonatype, Inc. Apache Maven is a trademark of the Apache Software Foundation. M2eclipse is a trademark of the
  * Eclipse Foundation. All other trademarks are the property of their respective owners.
  */
-
-package org.sonatype.nexus.blobstore.api;
-
-import org.sonatype.sisu.goodies.lifecycle.Lifecycle;
+/*global Ext, NX*/
 
 /**
- * {@link BlobStore} manager.
+ * Blobstore feature panel.
  *
  * @since 3.0
  */
-public interface BlobStoreManager
-  extends Lifecycle
-{
-  /**
-   * @return all BlobStores
-   */
-  Iterable<BlobStore> browse();
+Ext.define('NX.coreui.view.blobstore.BlobstoreFeature', {
+  extend: 'NX.view.drilldown.Drilldown',
+  alias: 'widget.nx-coreui-blobstore-feature',
+  requires: [
+    'NX.I18n'
+  ],
 
-  /**
-   * Create a new BlobStore
-   * @param blobStoreConfiguration
-   * @return newly created BlobStore
-   * @throws Exception
-   */
-  BlobStore create(BlobStoreConfiguration blobStoreConfiguration) throws Exception;
+  iconName: 'blobstore-default',
 
-  /**
-   * Delete an existing BlobStore
-   * @param blobStoreConfiguration
-   * @throws Exception
-   */
-  void delete(BlobStoreConfiguration blobStoreConfiguration) throws Exception;
+  masters: { xtype: 'nx-coreui-blobstore-list' },
 
-  /**
-   * Lookup a BlobStore by name
-   * @param name
-   * @return
-   */
-  BlobStore get(String name);
-  
-}
+  tabs: { xtype: 'nx-coreui-blobstore-settings' },
+
+  actions: [
+    { xtype: 'button', text: NX.I18n.get('ADMIN_BLOBSTORES_DETAILS_DELETE_BUTTON'), glyph: 'xf056@FontAwesome' /* fa-minus-circle */, action: 'delete', disabled: true }
+  ]
+});
