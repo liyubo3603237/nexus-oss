@@ -37,7 +37,6 @@ import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.util.EntityUtils;
 import org.joda.time.DateTime;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -168,15 +167,8 @@ public abstract class ProxyFacetSupport
     Payload payload = null;
     if (status.getStatusCode() == HttpStatus.SC_OK) {
       HttpEntity entity = response.getEntity();
-      try {
-        log.debug("Entity: {}", entity);
-        final HttpEntityPayload httpEntityPayload = new HttpEntityPayload(response, entity);
-
-        payload = readFully(httpEntityPayload);
-      }
-      finally {
-        EntityUtils.consume(entity);
-      }
+      log.debug("Entity: {}", entity);
+      payload = new HttpEntityPayload(response, entity);
     }
     else if (status.getStatusCode() == HttpStatus.SC_NOT_MODIFIED) {
       indicateUpToDate(context);
@@ -200,15 +192,6 @@ public abstract class ProxyFacetSupport
    * Provide the relative URL to the
    */
   protected abstract String getUrl(final @Nonnull Context context);
-
-  /**
-   * Read an incoming Payload into memory.
-   */
-  private Payload readFully(final Payload payload) throws IOException {
-    try (InputStream stream = payload.openInputStream()) {
-      return new BytesPayload(ByteStreams.toByteArray(stream), payload.getContentType());
-    }
-  }
 
   private boolean isStale(final Context context) throws IOException {
     if (artifactMaxAgeMinutes < 0) {
