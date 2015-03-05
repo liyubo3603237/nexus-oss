@@ -13,29 +13,17 @@
 /*global Ext, NX*/
 
 /**
- * Search result store.
+ * Asset info panel.
  *
  * @since 3.0
  */
-Ext.define('NX.coreui.store.SearchResult', {
-  extend: 'Ext.data.Store',
-  model: 'NX.coreui.model.Component',
+Ext.define('NX.coreui.view.component.AssetInfo', {
+  extend: 'NX.view.info.Panel',
+  alias: 'widget.nx-coreui-component-assetinfo',
+  requires: [
+    'NX.I18n'
+  ],
 
-  proxy: {
-    type: 'direct',
-
-    api: {
-      read: 'NX.direct.coreui_Search.read'
-    },
-
-    reader: {
-      type: 'json',
-      root: 'data',
-      successProperty: 'success'
-    }
-  },
-
-  pageSize: 50,
-  remoteFilter: true
+  title: NX.I18n.get('BROWSE_SEARCH_DETAILS_INFO_TAB')
 
 });
