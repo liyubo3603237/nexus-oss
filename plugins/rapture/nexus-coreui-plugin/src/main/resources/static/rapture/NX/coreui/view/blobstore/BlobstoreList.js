@@ -25,7 +25,7 @@ Ext.define('NX.coreui.view.blobstore.BlobstoreList', {
   ],
 
   store: 'NX.coreui.store.Blobstore',
-
+  
   columns: [
     {
       xtype: 'nx-iconcolumn',
@@ -38,8 +38,12 @@ Ext.define('NX.coreui.view.blobstore.BlobstoreList', {
     { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_NAME_COLUMN'), dataIndex: 'name', flex: 1 },
     { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_TYPE_COLUMN'), dataIndex: 'type' },
     { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_BLOB_COUNT_COLUMN'), dataIndex: 'blobCount' },
-    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_TOTAL_SIZE_COLUMN'), dataIndex: 'totalSize' },
-    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_AVAILABLE_SPACE_COLUMN'), dataIndex: 'availableSpace', flex: 1 }
+    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_TOTAL_SIZE_COLUMN'), dataIndex: 'totalSize', 
+      renderer:Ext.util.Format.fileSize 
+    },
+    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_AVAILABLE_SPACE_COLUMN'), dataIndex: 'availableSpace',
+      renderer: Ext.util.Format.fileSize, flex: 1 
+    }
   ],
 
   viewConfig: {
