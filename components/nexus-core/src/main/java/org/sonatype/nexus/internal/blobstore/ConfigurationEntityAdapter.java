@@ -61,8 +61,6 @@ public class ConfigurationEntityAdapter
 
   private static final String I_NAME = "blobstore_name_idx";
 
-  private static final String I_ATTRIBUTES = "blobstore_path_idx";
-
   /**
    * Register the required schema.
    * @param db
