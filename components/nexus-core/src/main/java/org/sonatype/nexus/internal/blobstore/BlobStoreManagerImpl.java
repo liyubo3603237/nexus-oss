@@ -24,18 +24,15 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.sonatype.nexus.blobstore.api.BlobStore;
-import org.sonatype.nexus.blobstore.api.BlobStoreManager;
 import org.sonatype.nexus.blobstore.api.BlobStoreConfiguration;
 import org.sonatype.nexus.blobstore.api.BlobStoreConfigurationStore;
+import org.sonatype.nexus.blobstore.api.BlobStoreManager;
 import org.sonatype.nexus.blobstore.file.FileBlobStore;
 import org.sonatype.nexus.blobstore.file.MapdbBlobMetadataStore;
 import org.sonatype.nexus.blobstore.file.SimpleFileOperations;
 import org.sonatype.nexus.blobstore.file.VolumeChapterLocationStrategy;
 import org.sonatype.nexus.common.stateguard.Guarded;
 import org.sonatype.nexus.common.stateguard.StateGuardLifecycleSupport;
-import org.sonatype.nexus.common.validation.ValidationMessage;
-import org.sonatype.nexus.common.validation.ValidationResponse;
-import org.sonatype.nexus.common.validation.ValidationResponseException;
 import org.sonatype.nexus.configuration.ApplicationDirectories;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -259,9 +256,7 @@ public class BlobStoreManagerImpl
       }
     });
     if(duplicatePath) {
-      ValidationResponse response = new ValidationResponse();
-      response.addError(new ValidationMessage("path", "Specified path is already used by another BlobStore: {}" + path));
-      throw new ValidationResponseException(response);
+      throw new IllegalStateException("Specified path is already used by another BlobStore: {}" + path);
     }
   }
 }
