@@ -37,8 +37,9 @@ Ext.define('NX.coreui.view.blobstore.BlobstoreList', {
     },
     { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_NAME_COLUMN'), dataIndex: 'name', flex: 1 },
     { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_TYPE_COLUMN'), dataIndex: 'type' },
-    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_FORMAT_COLUMN'), dataIndex: 'format' },
-    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_STATUS_COLUMN'), dataIndex: 'status', flex: 1 }
+    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_BLOB_COUNT_COLUMN'), dataIndex: 'blobCount' },
+    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_TOTAL_SIZE_COLUMN'), dataIndex: 'totalSize' },
+    { header: NX.I18n.get('ADMIN_BLOBSTORES_LIST_AVAILABLE_SPACE_COLUMN'), dataIndex: 'availableSpace', flex: 1 }
   ],
 
   viewConfig: {
