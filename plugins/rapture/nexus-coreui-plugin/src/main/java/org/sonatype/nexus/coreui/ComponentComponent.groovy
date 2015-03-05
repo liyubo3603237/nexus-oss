@@ -74,6 +74,7 @@ extends DirectComponentSupport
       return assets.collect { asset ->
         new AssetXO(
             // TODO should asset have a name?
+            id: asset.id,
             name: asset.getProperty(P_NAME) ?: component.getProperty(P_NAME),
             contentType: asset.getProperty(P_CONTENT_TYPE)
         )

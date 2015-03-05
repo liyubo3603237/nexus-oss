@@ -24,6 +24,7 @@ import groovy.transform.ToString
 @EqualsAndHashCode(includes = ["id"])
 class AssetXO
 {
+  String id
   String name
   String contentType
 }
