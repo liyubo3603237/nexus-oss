@@ -13,6 +13,7 @@
 package com.sonatype.nexus.repository.nuget.internal.proxy;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.util.Map;
 
@@ -84,12 +85,11 @@ public class NugetProxyFacet
 
   @Override
   protected void store(final Context context, final Payload payload) throws IOException, InvalidContentException {
-    // The metadata will have been cached by this time.
-    // All we need to do here is find the component in orient and call
-    // createOrUpdateAsset(storageTx, bucket, component, payload.openInputStream())
-
+    // The metadata will have been cached by this time, so we just need to set the content
     String[] coords = coords(context);
-    // TODO: Actually store the package content
+    try (InputStream in = payload.openInputStream()) {
+      gallery().putContent(coords[0], coords[1], in);
+    }
   }
 
   @Override

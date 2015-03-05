@@ -12,6 +12,7 @@
  */
 package com.sonatype.nexus.repository.nuget.internal;
 
+import java.io.InputStream;
 import java.util.Map;
 
 /**
@@ -19,5 +20,13 @@ import java.util.Map;
  */
 public interface NugetWritableGallery
 {
+  /**
+   * Adds or updates the metadata of a package.
+   */
   void putMetadata(Map<String, String> metadata);
+
+  /**
+   * Adds or updates the content of a package. The metadata must already exist.
+   */
+  void putContent(String id, String version, InputStream inputStream);
 }

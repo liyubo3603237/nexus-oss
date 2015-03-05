@@ -218,6 +218,17 @@ public class NugetGalleryFacetImpl
     }
   }
 
+  @Override
+  public void putContent(String id, String version, InputStream content) {
+    try (StorageTx tx = openStorageTx()) {
+      final OrientVertex bucket = tx.getBucket();
+      OrientVertex component = findComponent(tx, id, version);
+      checkState(component != null, "Component metadata does not exist yet");
+      createOrUpdateAsset(tx, bucket, component, content);
+      tx.commit();
+    }
+  }
+
   @VisibleForTesting
   Map<String, ?> toData(final NestedAttributesMap nugetAttributes, Map<String, String> extra) {
     Map<String, Object> data = Maps.newHashMap();
@@ -342,12 +353,8 @@ public class NugetGalleryFacetImpl
       if (component == null) {
         return null;
       }
-      OrientVertex asset = firstAsset(component);
-      if (asset == null) {
-        return null;
-      }
 
-      final NestedAttributesMap nugetAttributes = nugetAttribs(tx, asset);
+      final NestedAttributesMap nugetAttributes = nugetAttribs(tx, component);
       Date date = nugetAttributes.get(P_LAST_UPDATED, Date.class);
       return new DateTime(checkNotNull(date));
     }
