@@ -33,6 +33,9 @@ import org.sonatype.nexus.blobstore.file.SimpleFileOperations;
 import org.sonatype.nexus.blobstore.file.VolumeChapterLocationStrategy;
 import org.sonatype.nexus.common.stateguard.Guarded;
 import org.sonatype.nexus.common.stateguard.StateGuardLifecycleSupport;
+import org.sonatype.nexus.common.validation.ValidationMessage;
+import org.sonatype.nexus.common.validation.ValidationResponse;
+import org.sonatype.nexus.common.validation.ValidationResponseException;
 import org.sonatype.nexus.configuration.ApplicationDirectories;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -202,7 +205,7 @@ public class BlobStoreManagerImpl
     File metadataFile = root.resolve("metadata").toFile();
     content.toFile().mkdirs();
     metadataFile.mkdirs();
-
+    //TODO - validation that directories exist
     return new FileBlobStore(
         content,
         new VolumeChapterLocationStrategy(),
@@ -256,7 +259,10 @@ public class BlobStoreManagerImpl
       }
     });
     if(duplicatePath) {
-      throw new IllegalStateException("Specified path is already used by another BlobStore: {}" + path);
+      ValidationResponse validations = new ValidationResponse();
+      validations.addError(
+          new ValidationMessage("attributes", "Specified path is already used by another BlobStore: " + path)); 
+      throw new ValidationResponseException(validations);
     }
   }
 }
