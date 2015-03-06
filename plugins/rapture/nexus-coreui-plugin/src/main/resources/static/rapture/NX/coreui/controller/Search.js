@@ -531,15 +531,15 @@ Ext.define('NX.coreui.controller.Search', {
   onSearchResultAssetSelection: function(model) {
     var me = this,
         assetContainer = me.getAssetContainer(),
-        drilldown = assetContainer.up('nx-drilldown-item');
+        feature = me.getFeature();
 
     if (model) {
       me.getAssetContainer().assetModel = model;
       assetContainer.refreshInfo();
       assetContainer.expand();
       // Set the appropriate breadcrumb icon
-      drilldown.setItemClass(assetContainer.iconCls);
-      drilldown.setItemName(model.get('name'));
+      feature.setItemClass(2, assetContainer.iconCls);
+      feature.setItemName(2, model.get('name'));
     }
     else {
       assetContainer.refreshInfo();
