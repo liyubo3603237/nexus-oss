@@ -362,7 +362,7 @@ Ext.define('NX.coreui.controller.Search', {
    * @override
    */
   getDescription: function(model) {
-    return model.getId();
+    return model.get('name');
   },
 
   /**
