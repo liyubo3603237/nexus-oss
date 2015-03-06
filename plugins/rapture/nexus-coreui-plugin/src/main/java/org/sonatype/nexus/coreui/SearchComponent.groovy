@@ -78,7 +78,7 @@ extends DirectComponentSupport
       SearchResponse response = searchService.search(query, parameters.start, parameters.limit)
       return new PagedResponse<ComponentXO>(
           response.hits.totalHits,
-          response.hits.hits.collect { hit ->
+          response.hits.hits?.collect { hit ->
             return new ComponentXO(
                 id: hit.id,
                 repositoryName: hit.source[P_REPOSITORY_NAME],
