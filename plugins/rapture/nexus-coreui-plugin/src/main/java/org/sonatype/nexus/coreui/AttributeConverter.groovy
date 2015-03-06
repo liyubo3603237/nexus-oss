@@ -25,6 +25,7 @@ import org.eclipse.sisu.EagerSingleton
 
 
 /**
+ * Facilities to convert nested maps to/from JSON representation for DTOs.
  * @since 3.0
  */
 @Named

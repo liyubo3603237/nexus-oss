@@ -30,30 +30,21 @@ public interface BlobStoreManager
 
   /**
    * Create a new BlobStore
-   * @param blobStoreConfiguration
-   * @return newly created BlobStore
-   * @throws Exception
    */
   BlobStore create(BlobStoreConfiguration blobStoreConfiguration) throws Exception;
 
   /**
    * Delete an existing BlobStore
-   * @param blobStoreConfiguration
-   * @throws Exception
    */
   void delete(BlobStoreConfiguration blobStoreConfiguration) throws Exception;
 
   /**
    * Lookup a BlobStore by name
-   * @param name
-   * @return
    */
   BlobStore get(String name);
 
   /**
    * Delete a BlobStore by name
-   * @param name
-   * @throws Exception
    */
   void delete(String name) throws Exception;
   

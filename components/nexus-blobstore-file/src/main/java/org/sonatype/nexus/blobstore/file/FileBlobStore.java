@@ -271,7 +271,7 @@ public class FileBlobStore
 
   @Override
   public BlobStoreConfiguration getBlobStoreConfiguration() {
-    return this.blobStoreConfiguration;
+    return blobStoreConfiguration;
   }
 
   private void checkExists(final Path path, final BlobId blobId) throws IOException {

@@ -247,7 +247,6 @@ public class BlobStoreManagerImpl
 
   /**
    * Ensure that the path is not already used by another BlobStore
-   * @param configuration
    */
   private void validate(final BlobStoreConfiguration configuration) {
     final String path = getPath(configuration.getAttributes());
