@@ -121,6 +121,9 @@ public class MavenContentsFacetImpl
   public void putArtifact(final ArtifactCoordinates coordinates, final Content content)
       throws IOException, InvalidContentException
   {
+    if (coordinates.isHash()) {
+      putArtifactHash(coordinates, content);
+    }
     try (StorageTx tx = getStorage().openTx()) {
       final OrientVertex bucket = tx.getBucket();
       OrientVertex component = getArtifactComponent(tx, coordinates, bucket);
@@ -176,6 +179,30 @@ public class MavenContentsFacetImpl
       if (lastUpdated != null) {
         asset.setProperty(StorageFacet.P_LAST_UPDATED, new Date(lastUpdated.getMillis()));
       }
+
+      tx.commit();
+    }
+  }
+
+  /**
+   * verifies client sent hash and sets it into attributes. Expected that main artifact is present, verifies client
+   * expectations regarding artifact are met.
+   */
+  private void putArtifactHash(final ArtifactCoordinates coordinates, final Content content)
+      throws IOException, InvalidContentException
+  {
+    try (StorageTx tx = getStorage().openTx()) {
+      final OrientVertex bucket = tx.getBucket();
+      OrientVertex component = getArtifactComponent(tx, coordinates, bucket);
+      if (component == null) {
+        // does not exists?
+        // TODO: how to reject this now with 400 Bad Request?
+      }
+
+      // TODO: grab NX internal hash it content on blob, compare it
+      // TODO: if OK, store it/update EXT child map with hash value (as "externallly" provided)
+      // TODO: if not-OK, reject upload with 400, possible transfer corruption? Or in case of proxy?
+      // TODO: ChecksumPolicy?
 
       tx.commit();
     }
@@ -246,6 +273,9 @@ public class MavenContentsFacetImpl
   public void putMetadata(final Coordinates coordinates, final Content content)
       throws IOException, InvalidContentException
   {
+    if (coordinates.isHash()) {
+      putMetadataHash(coordinates, content);
+    }
     try (StorageTx tx = getStorage().openTx()) {
       OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
       if (asset == null) {
@@ -279,6 +309,24 @@ public class MavenContentsFacetImpl
         asset.setProperty(StorageFacet.P_LAST_UPDATED, new Date(lastUpdated.getMillis()));
         asset.setProperty(StorageFacet.P_PATH, coordinates.getPath());
       }
+
+      tx.commit();
+    }
+  }
+
+  /**
+   * verifies client sent hash and sets it into attributes. Expected that main metadata is present, verifies client
+   * expectations regarding artifact are met.
+   */
+  private void putMetadataHash(final Coordinates coordinates, final Content content)
+      throws IOException, InvalidContentException
+  {
+    try (StorageTx tx = getStorage().openTx()) {
+      OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
+      if (asset == null) {
+        // illiegal
+      }
+
 
       tx.commit();
     }
