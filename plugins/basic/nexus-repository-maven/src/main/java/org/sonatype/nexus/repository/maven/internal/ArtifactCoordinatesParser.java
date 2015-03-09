@@ -12,23 +12,18 @@
  */
 package org.sonatype.nexus.repository.maven.internal;
 
-import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 /**
- * Component responsible for parsing artifact paths into map of coordinates and other way around.
+ * Component responsible for parsing request paths into artifact coordinates.
  *
  * @since 3.0
  */
-public interface PathParser
+public interface ArtifactCoordinatesParser
 {
   /**
-   * Parses Maven path into {@link Coordinates}.
+   * Parses path into {@link ArtifactCoordinates} if possible, otherwise returns {@code null}.
    */
-  @Nonnull
-  Coordinates parsePath(String path);
-
-  /**
-   * Returns {@code true} if version string represents a Maven SNAPSHOT version.
-   */
-  boolean isSnapshotVersion(String version);
+  @Nullable
+  ArtifactCoordinates parsePath(String path);
 }

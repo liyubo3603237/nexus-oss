@@ -23,8 +23,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Maven repository artifact coordinates. Every artifact in repository have Maven Coordinates, may have hashes and
  * signatures.
  *
- * @since 3.0
  * @see Coordinates
+ * @since 3.0
  */
 @Immutable
 public class ArtifactCoordinates
@@ -45,6 +45,8 @@ public class ArtifactCoordinates
     }
   }
 
+  private final boolean snapshot;
+
   private final String groupId;
 
   private final String artifactId;
@@ -60,8 +62,7 @@ public class ArtifactCoordinates
   private final SignatureType signatureType;
 
   public ArtifactCoordinates(final String path,
-                             final String fileName,
-                             final @Nullable HashType hashType,
+                             final boolean snapshot,
                              final String groupId,
                              final String artifactId,
                              final String version,
@@ -70,7 +71,8 @@ public class ArtifactCoordinates
                              final String extension,
                              final @Nullable SignatureType signatureType)
   {
-    super(path, fileName, hashType);
+    super(path);
+    this.snapshot = snapshot;
     this.groupId = checkNotNull(groupId);
     this.artifactId = checkNotNull(artifactId);
     this.version = checkNotNull(version);
@@ -78,6 +80,10 @@ public class ArtifactCoordinates
     this.classifier = classifier;
     this.extension = checkNotNull(extension);
     this.signatureType = signatureType;
+  }
+
+  public boolean isSnapshot() {
+    return snapshot;
   }
 
   @Nonnull
@@ -149,8 +155,7 @@ public class ArtifactCoordinates
       int hashSuffixLen = hashType.getExt().length() + 1; // the dot
       return new ArtifactCoordinates(
           path.substring(0, path.length() - hashSuffixLen),
-          fileName.substring(0, fileName.length() - hashSuffixLen),
-          null,
+          snapshot,
           groupId,
           artifactId,
           version,
@@ -164,8 +169,7 @@ public class ArtifactCoordinates
       int signatureSuffixLen = signatureType.getExt().length() + 1; // the dot
       return new ArtifactCoordinates(
           path.substring(0, path.length() - signatureSuffixLen),
-          fileName.substring(0, fileName.length() - signatureSuffixLen),
-          null,
+          snapshot,
           groupId,
           artifactId,
           version,
@@ -187,8 +191,7 @@ public class ArtifactCoordinates
     checkArgument(!isHash(), "This coordinate is already a hash: " + this);
     return new ArtifactCoordinates(
         path + "." + hashType.getExt(),
-        fileName + "." + hashType.getExt(),
-        hashType,
+        snapshot,
         groupId,
         artifactId,
         version,
@@ -209,8 +212,7 @@ public class ArtifactCoordinates
     checkArgument(!isSignature(), "This coordinate is already a signature: " + this);
     return new ArtifactCoordinates(
         path + "." + signatureType.getExt(),
-        fileName + "." + signatureType.getExt(),
-        hashType,
+        snapshot,
         groupId,
         artifactId,
         version,
@@ -279,7 +281,8 @@ public class ArtifactCoordinates
         "path='" + path + '\'' +
         ", fileName='" + fileName + '\'' +
         ", hashType=" + hashType +
-        "groupId='" + groupId + '\'' +
+        ", snapshot=" + snapshot +
+        ", groupId='" + groupId + '\'' +
         ", artifactId='" + artifactId + '\'' +
         ", version='" + version + '\'' +
         ", baseVersion='" + baseVersion + '\'' +

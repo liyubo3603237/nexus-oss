@@ -12,8 +12,6 @@
  */
 package org.sonatype.nexus.repository.maven.internal.maven2;
 
-import java.util.regex.Pattern;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -21,13 +19,9 @@ import org.sonatype.nexus.proxy.maven.gav.Gav;
 import org.sonatype.nexus.proxy.maven.gav.M2GavCalculator;
 import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates;
 import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates.SignatureType;
-import org.sonatype.nexus.repository.maven.internal.Coordinates;
-import org.sonatype.nexus.repository.maven.internal.Coordinates.HashType;
-import org.sonatype.nexus.repository.maven.internal.PathParser;
+import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinatesParser;
 
 import com.google.common.base.Strings;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Maven 2 path parser.
@@ -36,33 +30,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 @Named(Maven2Format.NAME)
 @Singleton
-public class Maven2PathParser
-    implements PathParser
+public class Maven2ArtifactCoordinatesParser
+    implements ArtifactCoordinatesParser
 {
-  private static final String SNAPSHOT_VERSION = "SNAPSHOT";
-
-  private static final Pattern VERSION_FILE_PATTERN =
-      Pattern.compile(
-          "^(.*)-([0-9]{8}.[0-9]{6})-([0-9]+)$|^([0-9]{8}.[0-9]{6})-([0-9]+)$|^(.*)([0-9]{8}.[0-9]{6})-([0-9]+)$");
-
   // TODO: TokenParser not capable to do this (yet)
   // TODO: this is legacy, but here only to make it work
   // TODO: consider moving/updating/fleshing out it from nx2 codebase, or improve TokenParser
   private final M2GavCalculator m2GavCalculator = new M2GavCalculator();
 
   @Override
-  public Coordinates parsePath(final String path) {
-    final String fileName = path.substring(path.lastIndexOf('/') + 1);
-    HashType hashType = null;
-    for (HashType ht : HashType.values()) {
-      if (fileName.endsWith("." + ht.getExt())) {
-        hashType = ht;
-        break;
-      }
-    }
+  public ArtifactCoordinates parsePath(final String path) {
     final Gav gav = m2GavCalculator.pathToGav(path);
     if (gav == null) {
-      return new Coordinates(path, fileName, hashType);
+      return null;
     }
     else {
       SignatureType signatureType = null;
@@ -85,8 +65,7 @@ public class Maven2PathParser
 
       return new ArtifactCoordinates(
           path,
-          fileName,
-          hashType,
+          gav.isSnapshot(),
           gav.getGroupId(),
           gav.getArtifactId(),
           gav.getVersion(),
@@ -96,11 +75,5 @@ public class Maven2PathParser
           signatureType
       );
     }
-  }
-
-  @Override
-  public boolean isSnapshotVersion(final String version) {
-    checkNotNull(version);
-    return VERSION_FILE_PATTERN.matcher(version).matches() || version.endsWith(SNAPSHOT_VERSION);
   }
 }

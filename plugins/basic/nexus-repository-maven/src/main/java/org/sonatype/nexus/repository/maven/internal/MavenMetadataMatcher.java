@@ -12,7 +12,6 @@
  */
 package org.sonatype.nexus.repository.maven.internal;
 
-import org.sonatype.nexus.repository.maven.internal.maven2.Maven2Format;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Matcher;
 import org.sonatype.sisu.goodies.common.ComponentSupport;
@@ -26,12 +25,13 @@ public class MavenMetadataMatcher
     extends ComponentSupport
     implements Matcher
 {
+  private static final String MAVEN_METADATA_FILENAME = "maven-metadata.xml";
+
   @Override
   public boolean matches(final Context context) {
     final String path = context.getRequest().getPath();
-    final MavenFacet mavenFacet = context.getRepository().facet(MavenFacet.class);
-    final Coordinates coordinates = mavenFacet.getPathParser().parsePath(path);
-    if (coordinates.main().getFileName().equals(Maven2Format.MAVEN_METADATA_FILENAME)) {
+    final Coordinates coordinates = new Coordinates(path);
+    if (coordinates.main().getFileName().equals(MAVEN_METADATA_FILENAME)) {
       context.getAttributes().set(Coordinates.class, coordinates);
       return true;
     }

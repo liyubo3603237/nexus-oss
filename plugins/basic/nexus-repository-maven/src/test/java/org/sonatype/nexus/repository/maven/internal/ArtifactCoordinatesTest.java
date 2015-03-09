@@ -14,7 +14,7 @@ package org.sonatype.nexus.repository.maven.internal;
 
 import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates.SignatureType;
 import org.sonatype.nexus.repository.maven.internal.Coordinates.HashType;
-import org.sonatype.nexus.repository.maven.internal.maven2.Maven2PathParser;
+import org.sonatype.nexus.repository.maven.internal.maven2.Maven2ArtifactCoordinatesParser;
 import org.sonatype.sisu.litmus.testsupport.TestSupport;
 
 import org.junit.Test;
@@ -36,7 +36,7 @@ public class ArtifactCoordinatesTest
 {
   @Test
   public void pom() {
-    final Maven2PathParser pathParser = new Maven2PathParser();
+    final Maven2ArtifactCoordinatesParser pathParser = new Maven2ArtifactCoordinatesParser();
 
     final String path = "/org/eclipse/jetty/jetty-io/8.1.16.v20140903/jetty-io-8.1.16.v20140903.pom";
     final Coordinates coordinates = pathParser.parsePath(path);
@@ -77,7 +77,7 @@ public class ArtifactCoordinatesTest
 
   @Test
   public void pomSnapshot() {
-    final Maven2PathParser pathParser = new Maven2PathParser();
+    final Maven2ArtifactCoordinatesParser pathParser = new Maven2ArtifactCoordinatesParser();
 
     final String path = "/org/eclipse/jetty/jetty-io/8.1.16-SNAPSHOT/jetty-io-8.1.16-20140903.180000-1.pom";
     final Coordinates coordinates = pathParser.parsePath(path);

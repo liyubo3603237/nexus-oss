@@ -34,16 +34,16 @@ public class MavenFacetImpl
 {
   public static final String CONFIG_KEY = "maven";
 
-  private final Map<String, PathParser> pathParsers;
+  private final Map<String, ArtifactCoordinatesParser> pathParsers;
 
   private VersionPolicy versionPolicy;
 
   private RedeployPolicy redeployPolicy;
 
-  private PathParser pathParser;
+  private ArtifactCoordinatesParser artifactCoordinatesParser;
 
   @Inject
-  public MavenFacetImpl(final Map<String, PathParser> pathParsers) {
+  public MavenFacetImpl(final Map<String, ArtifactCoordinatesParser> pathParsers) {
     this.pathParsers = checkNotNull(pathParsers);
   }
 
@@ -53,7 +53,7 @@ public class MavenFacetImpl
     NestedAttributesMap attributes = getRepository().getConfiguration().attributes(CONFIG_KEY);
     this.versionPolicy = VersionPolicy.valueOf(attributes.require("repositoryPolicy", String.class));
     this.redeployPolicy = RedeployPolicy.valueOf(attributes.require("redeployPolicy", String.class));
-    this.pathParser = checkNotNull(pathParsers.get(getRepository().getFormat().getValue()),
+    this.artifactCoordinatesParser = checkNotNull(pathParsers.get(getRepository().getFormat().getValue()),
         "No pathParser found for %s", getRepository().getFormat().getValue());
   }
 
@@ -68,7 +68,7 @@ public class MavenFacetImpl
   }
 
   @Override
-  public PathParser getPathParser() {
-    return pathParser;
+  public ArtifactCoordinatesParser getArtifactCoordinatesParser() {
+    return artifactCoordinatesParser;
   }
 }

@@ -25,8 +25,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Maven non-artifact repository coordinates. Every item in repository may have hashes, stored on paths with proper
  * suffixes.
  *
- * @since 3.0
  * @see ArtifactCoordinates
+ * @since 3.0
  */
 @Immutable
 public class Coordinates
@@ -61,13 +61,18 @@ public class Coordinates
 
   protected final HashType hashType;
 
-  public Coordinates(final String path,
-                     final String fileName,
-                     final @Nullable HashType hashType)
+  public Coordinates(final String path)
   {
     this.path = checkNotNull(path);
-    this.fileName = checkNotNull(fileName);
-    this.hashType = hashType;
+    this.fileName = this.path.substring(path.lastIndexOf('/') + 1);
+    HashType ht = null;
+    for (HashType v : HashType.values()) {
+      if (this.fileName.endsWith("." + v.getExt())) {
+        ht = v;
+        break;
+      }
+    }
+    this.hashType = ht;
   }
 
   @Nonnull
@@ -119,9 +124,7 @@ public class Coordinates
     if (isHash()) {
       int hashSuffixLen = hashType.getExt().length() + 1; // the dot
       return new Coordinates(
-          path.substring(0, path.length() - hashSuffixLen),
-          fileName.substring(0, fileName.length() - hashSuffixLen),
-          null
+          path.substring(0, path.length() - hashSuffixLen)
       );
     }
     return null;
@@ -134,9 +137,7 @@ public class Coordinates
     checkNotNull(hashType);
     checkArgument(!isHash(), "This coordinate is already a hash: " + this);
     return new Coordinates(
-        path + "." + hashType.getExt(),
-        fileName + "." + hashType.getExt(),
-        hashType
+        path + "." + hashType.getExt()
     );
   }
 

@@ -29,9 +29,9 @@ public class MavenArtifactMatcher
   public boolean matches(final Context context) {
     final String path = context.getRequest().getPath();
     final MavenFacet mavenFacet = context.getRepository().facet(MavenFacet.class);
-    final Coordinates coordinates = mavenFacet.getPathParser().parsePath(path);
-    if (coordinates instanceof ArtifactCoordinates) {
-      context.getAttributes().set(ArtifactCoordinates.class, (ArtifactCoordinates) coordinates);
+    final ArtifactCoordinates coordinates = mavenFacet.getArtifactCoordinatesParser().parsePath(path);
+    if (coordinates != null) {
+      context.getAttributes().set(ArtifactCoordinates.class, coordinates);
       return true;
     }
     return false;

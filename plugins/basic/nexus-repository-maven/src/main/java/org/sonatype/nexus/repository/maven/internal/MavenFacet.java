@@ -29,5 +29,5 @@ public interface MavenFacet
 
   RedeployPolicy getRedeployPolicy();
 
-  PathParser getPathParser();
+  ArtifactCoordinatesParser getArtifactCoordinatesParser();
 }

@@ -18,8 +18,10 @@ import javax.annotation.Nonnull;
 import javax.inject.Named;
 
 import org.sonatype.nexus.repository.content.InvalidContentException;
+import org.sonatype.nexus.repository.maven.internal.policy.ChecksumPolicy;
 import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.proxy.ProxyFacetSupport;
+import org.sonatype.nexus.repository.util.NestedAttributesMap;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Payload;
 
@@ -35,6 +37,17 @@ import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toPaylo
 public class MavenProxyFacet
     extends ProxyFacetSupport
 {
+  public static final String CONFIG_KEY = "maven";
+
+  private ChecksumPolicy checksumPolicy;
+
+  @Override
+  protected void doConfigure() throws Exception {
+    super.doConfigure();
+    NestedAttributesMap attributes = getRepository().getConfiguration().attributes(CONFIG_KEY);
+    this.checksumPolicy = ChecksumPolicy.valueOf(attributes.require("checksumPolicy", String.class));
+  }
+
   @Override
   protected Payload getCachedPayload(final Context context) throws IOException {
     final Content content = storage().get(coordinates(context));
