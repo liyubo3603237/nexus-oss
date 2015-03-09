@@ -22,8 +22,9 @@ import org.sonatype.nexus.repository.Format
 import org.sonatype.nexus.repository.RecipeSupport
 import org.sonatype.nexus.repository.Repository
 import org.sonatype.nexus.repository.Type
+import org.sonatype.nexus.repository.group.GroupHandler
 import org.sonatype.nexus.repository.maven.internal.CoordinatesHandler
-import org.sonatype.nexus.repository.maven.internal.MavenGroupHandler
+import org.sonatype.nexus.repository.maven.internal.MetadataMergeHandler
 import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacetImpl
 import org.sonatype.nexus.repository.search.SearchFacet
 import org.sonatype.nexus.repository.security.SecurityHandler
@@ -75,7 +76,10 @@ class Maven2GroupRecipe
   CoordinatesHandler coordinatesHandler
 
   @Inject
-  MavenGroupHandler mavenGroupHandler
+  MetadataMergeHandler mavenGroupHandler
+
+  @Inject
+  GroupHandler groupHandler
 
   @Inject
   Maven2GroupRecipe(@Named(HostedType.NAME) final Type type,
@@ -102,6 +106,7 @@ class Maven2GroupRecipe
         .handler(securityHandler)
         .handler(coordinatesHandler)
         .handler(mavenGroupHandler)
+        .handler(groupHandler)
         .create())
 
     builder.defaultHandlers(notFound())

@@ -37,14 +37,13 @@ import static org.sonatype.nexus.repository.http.HttpMethods.GET;
 import static org.sonatype.nexus.repository.maven.internal.ContextHelper.coordinates;
 
 /**
- * Maven group handler.
+ * Maven metadata merge handler.
  *
  * @since 3.0
  */
-// TODO: this is started from copy+paste of GroupHandler, but that class as-is cannot be extended to suit this use case
 @Singleton
 @Named
-public class MavenGroupHandler
+public class MetadataMergeHandler
     extends ComponentSupport
     implements Handler
 {
@@ -86,31 +85,6 @@ public class MavenGroupHandler
       default:
         return HttpResponses.methodNotAllowed(action, GET);
     }
-  }
-
-  @Nonnull
-  private Response handleFirstFound(final @Nonnull Context context) throws Exception {
-    final Request request = context.getRequest();
-    final DispatchedRepositories dispatched = request.getAttributes().getOrCreate(DispatchedRepositories.class);
-    final Repository repository = context.getRepository();
-    final GroupFacet group = repository.facet(GroupFacet.class);
-    for (Repository member : group.members()) {
-      log.trace("Trying member: {}", member);
-
-      // track repositories we have dispatched to, prevent circular dispatch for nested groups
-      if (dispatched.contains(member)) {
-        log.trace("Skipping already dispatched member: {}", member);
-        continue;
-      }
-      dispatched.add(member);
-
-      final ViewFacet view = member.facet(ViewFacet.class);
-      final Response response = view.dispatch(request);
-      if (response.getStatus().getCode() == HttpStatus.OK) {
-        return response;
-      }
-    }
-    return HttpResponses.notFound();
   }
 
   // TODO: merge and then cache in group storage (for next hashCode req)? If so, then

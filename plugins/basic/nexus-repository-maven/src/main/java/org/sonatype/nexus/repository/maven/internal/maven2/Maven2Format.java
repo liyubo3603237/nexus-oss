@@ -27,6 +27,8 @@ import org.sonatype.nexus.repository.Format;
 public class Maven2Format
     extends Format
 {
+  public static final String MAVEN_METADATA_FILENAME = "maven-metadata.xml";
+
   public static final String NAME = "maven2";
 
   public Maven2Format() {
