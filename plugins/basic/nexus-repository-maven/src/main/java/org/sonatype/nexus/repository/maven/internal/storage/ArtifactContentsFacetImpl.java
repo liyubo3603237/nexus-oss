@@ -50,14 +50,14 @@ import static org.sonatype.nexus.common.hash.HashAlgorithm.SHA1;
 import static org.sonatype.nexus.repository.storage.StorageFacet.*;
 
 /**
- * A {@link MavenContentsFacet} that persists to a {@link StorageFacet}.
+ * A {@link ArtifactContentsFacet} that persists Maven artifacts as components to a {@link StorageFacet}.
  *
  * @since 3.0
  */
 @Named
-public class MavenContentsFacetImpl
+public class ArtifactContentsFacetImpl
     extends FacetSupport
-    implements MavenContentsFacet
+    implements ArtifactContentsFacet
 {
   public static final String CONFIG_KEY = "mavenStorage";
 
@@ -68,7 +68,7 @@ public class MavenContentsFacetImpl
   private boolean strictContentTypeValidation = false;
 
   @Inject
-  public MavenContentsFacetImpl(final MimeSupport mimeSupport)
+  public ArtifactContentsFacetImpl(final MimeSupport mimeSupport)
   {
     this.mimeSupport = checkNotNull(mimeSupport);
   }
@@ -81,7 +81,7 @@ public class MavenContentsFacetImpl
 
   @Nullable
   @Override
-  public Content get(final Coordinates coordinates) {
+  public Content get(final ArtifactCoordinates coordinates) {
     try (StorageTx tx = getStorage().openTx()) {
       final OrientVertex component = getComponent(tx, coordinates.getPath(), tx.getBucket());
       if (component == null) {
@@ -99,7 +99,7 @@ public class MavenContentsFacetImpl
   }
 
   @Override
-  public void put(final Coordinates coordinates, final Content content) throws IOException, InvalidContentException {
+  public void put(final ArtifactCoordinates coordinates, final Content content) throws IOException, InvalidContentException {
     try (StorageTx tx = getStorage().openTx()) {
       final OrientVertex bucket = tx.getBucket();
       OrientVertex component = getComponent(tx, coordinates.getPath(), bucket);
@@ -197,7 +197,7 @@ public class MavenContentsFacetImpl
   }
 
   @Override
-  public boolean delete(final Coordinates coordinates) throws IOException {
+  public boolean delete(final ArtifactCoordinates coordinates) throws IOException {
     try (StorageTx tx = getStorage().openTx()) {
       final OrientVertex component = getComponent(tx, coordinates.getPath(), tx.getBucket());
       if (component == null) {
@@ -216,7 +216,7 @@ public class MavenContentsFacetImpl
   }
 
   @Override
-  public boolean exists(final Coordinates coordinates) throws IOException {
+  public boolean exists(final ArtifactCoordinates coordinates) throws IOException {
     try (StorageTx tx = getStorage().openTx()) {
       final OrientVertex component = getComponent(tx, coordinates.getPath(), tx.getBucket());
       if (component == null) {
@@ -228,7 +228,7 @@ public class MavenContentsFacetImpl
   }
 
   @Override
-  public void updateLastUpdated(final Coordinates coordinates, final DateTime lastUpdated) throws IOException {
+  public void updateLastUpdated(final ArtifactCoordinates coordinates, final DateTime lastUpdated) throws IOException {
     try (StorageTx tx = getStorage().openTx()) {
       OrientVertex bucket = tx.getBucket();
       OrientVertex component = tx.findComponentWithProperty(P_PATH, coordinates.getPath(), bucket);

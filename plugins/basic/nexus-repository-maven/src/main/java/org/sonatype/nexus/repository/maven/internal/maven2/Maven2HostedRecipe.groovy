@@ -26,7 +26,8 @@ import org.sonatype.nexus.repository.maven.internal.MavenArtifactHandler
 import org.sonatype.nexus.repository.maven.internal.MavenArtifactMatcher
 import org.sonatype.nexus.repository.maven.internal.MavenMetadataHandler
 import org.sonatype.nexus.repository.maven.internal.MavenMetadataMatcher
-import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacetImpl
+import org.sonatype.nexus.repository.maven.internal.storage.ArtifactContentsFacetImpl
+import org.sonatype.nexus.repository.maven.internal.storage.MetadataContentsFacetImpl
 import org.sonatype.nexus.repository.search.SearchFacet
 import org.sonatype.nexus.repository.security.SecurityHandler
 import org.sonatype.nexus.repository.storage.StorageFacetImpl
@@ -70,7 +71,10 @@ class Maven2HostedRecipe
   SecurityHandler securityHandler
 
   @Inject
-  Provider<MavenContentsFacetImpl> mavenStorageFacet
+  Provider<ArtifactContentsFacetImpl> artifactContentsFacet
+
+  @Inject
+  Provider<MetadataContentsFacetImpl> metadataContentsFacet
 
   @Inject
   MavenArtifactHandler mavenArtifactHandler
@@ -90,7 +94,8 @@ class Maven2HostedRecipe
     repository.attach(securityFacet.get())
     repository.attach(storageFacet.get())
     repository.attach(searchFacet.get());
-    repository.attach(mavenStorageFacet.get())
+    repository.attach(artifactContentsFacet.get())
+    repository.attach(metadataContentsFacet.get())
     repository.attach(configure(viewFacet.get()))
   }
 

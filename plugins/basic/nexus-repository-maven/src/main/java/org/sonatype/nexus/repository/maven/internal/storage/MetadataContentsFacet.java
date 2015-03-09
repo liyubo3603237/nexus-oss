@@ -24,12 +24,12 @@ import org.sonatype.nexus.repository.maven.internal.Coordinates;
 import org.joda.time.DateTime;
 
 /**
- * Provides persistent storage for {@link Content}.
+ * Provides persistent storage for Maven metadata.
  *
  * @since 3.0
  */
 @Facet.Exposed
-public interface MavenContentsFacet
+public interface MetadataContentsFacet
     extends Facet
 {
   @Nullable

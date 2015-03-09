@@ -13,7 +13,6 @@
 package org.sonatype.nexus.repository.maven.internal;
 
 import org.sonatype.nexus.repository.Facet;
-import org.sonatype.nexus.repository.maven.internal.policy.RedeployPolicy;
 import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy;
 
 /**
@@ -26,8 +25,6 @@ public interface MavenFacet
     extends Facet
 {
   VersionPolicy getVersionPolicy();
-
-  RedeployPolicy getRedeployPolicy();
 
   ArtifactCoordinatesParser getArtifactCoordinatesParser();
 }
