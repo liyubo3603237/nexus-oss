@@ -34,7 +34,7 @@ public class Description
     this.parameters = parameters;
   }
 
-   public boolean isDescribing() {
+  public boolean isDescribing() {
     return true;
   }
 
@@ -53,7 +53,7 @@ public class Description
     return this;
   }
 
-   public Description addAll(final String name, final Iterable values) {
+  public Description addAll(final String name, final Iterable values) {
     int row = 0;
     Map<String, Object> table = Maps.newHashMap();
     for (Object value : values) {

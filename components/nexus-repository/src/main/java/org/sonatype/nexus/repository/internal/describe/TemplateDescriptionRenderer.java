@@ -50,12 +50,9 @@ public class TemplateDescriptionRenderer
 
   @Override
   public String renderHtml(final Description description) {
-
-    final HashMap<String, Object> data = Maps.newHashMap();
-
     final TemplateParameters params = new TemplateParameters();
     params.setAll(description.getParameters());
-    params.set("items",description.getItems());
+    params.set("items", description.getItems());
 
     return templateEngine.render(this, template, params);
   }
