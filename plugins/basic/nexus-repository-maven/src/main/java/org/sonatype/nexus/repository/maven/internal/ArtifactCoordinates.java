@@ -24,6 +24,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * signatures.
  *
  * @since 3.0
+ * @see Coordinates
  */
 @Immutable
 public class ArtifactCoordinates

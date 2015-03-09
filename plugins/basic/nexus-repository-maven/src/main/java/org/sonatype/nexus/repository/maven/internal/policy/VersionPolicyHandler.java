@@ -24,7 +24,6 @@ import org.sonatype.nexus.repository.view.Handler;
 import org.sonatype.nexus.repository.view.Response;
 import org.sonatype.sisu.goodies.common.ComponentSupport;
 
-import static org.sonatype.nexus.repository.maven.internal.ContextHelper.artifactCoordinates;
 import static org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy.RELEASE;
 import static org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy.SNAPSHOT;
 
@@ -42,7 +41,7 @@ public class VersionPolicyHandler
   @Nonnull
   @Override
   public Response handle(@Nonnull final Context context) throws Exception {
-    final ArtifactCoordinates artifactCoordinates = artifactCoordinates(context);
+    final ArtifactCoordinates artifactCoordinates = context.getAttributes().require(ArtifactCoordinates.class);
     if (artifactCoordinates != null) {
       final MavenFacet mavenFacet = context.getRepository().facet(MavenFacet.class);
       final VersionPolicy versionPolicy = mavenFacet.getVersionPolicy();

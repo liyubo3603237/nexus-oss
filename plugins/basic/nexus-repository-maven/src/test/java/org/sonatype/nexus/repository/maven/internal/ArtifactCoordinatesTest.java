@@ -26,6 +26,11 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 
+/**
+ * UT for {@link ArtifactCoordinates}
+ *
+ * @since 3.0
+ */
 public class ArtifactCoordinatesTest
     extends TestSupport
 {

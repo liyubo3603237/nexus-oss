@@ -22,20 +22,18 @@ import org.sonatype.nexus.repository.Format
 import org.sonatype.nexus.repository.RecipeSupport
 import org.sonatype.nexus.repository.Repository
 import org.sonatype.nexus.repository.Type
+import org.sonatype.nexus.repository.group.GroupFacetImpl
 import org.sonatype.nexus.repository.group.GroupHandler
-import org.sonatype.nexus.repository.maven.internal.CoordinatesHandler
+import org.sonatype.nexus.repository.maven.internal.MavenArtifactMatcher
+import org.sonatype.nexus.repository.maven.internal.MavenMetadataMatcher
 import org.sonatype.nexus.repository.maven.internal.MetadataMergeHandler
-import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacetImpl
-import org.sonatype.nexus.repository.search.SearchFacet
 import org.sonatype.nexus.repository.security.SecurityHandler
-import org.sonatype.nexus.repository.storage.StorageFacetImpl
 import org.sonatype.nexus.repository.types.HostedType
 import org.sonatype.nexus.repository.view.ConfigurableViewFacet
 import org.sonatype.nexus.repository.view.Route
 import org.sonatype.nexus.repository.view.Router
 import org.sonatype.nexus.repository.view.ViewFacet
 import org.sonatype.nexus.repository.view.handlers.TimingHandler
-import org.sonatype.nexus.repository.view.matchers.token.TokenMatcher
 
 import static org.sonatype.nexus.repository.http.HttpHandlers.notFound
 
@@ -58,10 +56,7 @@ class Maven2GroupRecipe
   Provider<ConfigurableViewFacet> viewFacet
 
   @Inject
-  Provider<StorageFacetImpl> storageFacet
-
-  @Inject
-  Provider<SearchFacet> searchFacet
+  Provider<GroupFacetImpl> groupFacet
 
   @Inject
   TimingHandler timingHandler
@@ -70,16 +65,10 @@ class Maven2GroupRecipe
   SecurityHandler securityHandler
 
   @Inject
-  Provider<MavenContentsFacetImpl> mavenStorageFacet
-
-  @Inject
-  CoordinatesHandler coordinatesHandler
-
-  @Inject
-  MetadataMergeHandler mavenGroupHandler
-
-  @Inject
   GroupHandler groupHandler
+
+  @Inject
+  MetadataMergeHandler metadataMergeHandler
 
   @Inject
   Maven2GroupRecipe(@Named(HostedType.NAME) final Type type,
@@ -91,9 +80,7 @@ class Maven2GroupRecipe
   @Override
   void apply(@Nonnull final Repository repository) throws Exception {
     repository.attach(securityFacet.get())
-    repository.attach(storageFacet.get())
-    repository.attach(searchFacet.get());
-    repository.attach(mavenStorageFacet.get())
+    repository.attach(groupFacet.get());
     repository.attach(configure(viewFacet.get()))
   }
 
@@ -101,12 +88,17 @@ class Maven2GroupRecipe
     Router.Builder builder = new Router.Builder()
 
     builder.route(new Route.Builder()
-        .matcher(new TokenMatcher("/{name:.+}"))
+        .matcher(new MavenArtifactMatcher())
         .handler(timingHandler)
         .handler(securityHandler)
-        .handler(coordinatesHandler)
-        .handler(mavenGroupHandler)
         .handler(groupHandler)
+        .create())
+
+    builder.route(new Route.Builder()
+        .matcher(new MavenMetadataMatcher())
+        .handler(timingHandler)
+        .handler(securityHandler)
+        .handler(metadataMergeHandler)
         .create())
 
     builder.defaultHandlers(notFound())

@@ -47,7 +47,7 @@ public class GroupHandler
   /**
    * Request-context state container for set of repositories already dispatched to.
    */
-  private static class DispatchedRepositories
+  public static class DispatchedRepositories
   {
     private final Set<String> dispatched = Sets.newHashSet();
 

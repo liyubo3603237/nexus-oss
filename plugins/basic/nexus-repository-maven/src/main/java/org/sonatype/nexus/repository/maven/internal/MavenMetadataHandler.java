@@ -17,8 +17,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.sonatype.nexus.repository.http.HttpResponses;
-import org.sonatype.nexus.repository.maven.internal.Content;
-import org.sonatype.nexus.repository.maven.internal.Coordinates;
 import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Handler;
@@ -32,16 +30,15 @@ import static org.sonatype.nexus.repository.http.HttpMethods.GET;
 import static org.sonatype.nexus.repository.http.HttpMethods.PUT;
 import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toContent;
 import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toPayload;
-import static org.sonatype.nexus.repository.maven.internal.ContextHelper.coordinates;
 
 /**
- * Maven hosted handler.
+ * Maven metadata handler.
  *
  * @since 3.0
  */
 @Singleton
 @Named
-public class MavenHostedHandler
+public class MavenMetadataHandler
     extends ComponentSupport
     implements Handler
 {
@@ -49,9 +46,8 @@ public class MavenHostedHandler
   @Override
   public Response handle(final @Nonnull Context context) throws Exception {
     final String action = context.getRequest().getAction();
-    final Coordinates coordinates = coordinates(context);
+    final Coordinates coordinates = context.getAttributes().require(Coordinates.class);
     final MavenContentsFacet mavenContentsFacet = context.getRepository().facet(MavenContentsFacet.class);
-
     switch (action) {
       case GET: {
         final Content content = mavenContentsFacet.get(coordinates);

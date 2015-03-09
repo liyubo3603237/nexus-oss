@@ -23,8 +23,9 @@ import org.sonatype.nexus.repository.RecipeSupport
 import org.sonatype.nexus.repository.Repository
 import org.sonatype.nexus.repository.Type
 import org.sonatype.nexus.repository.httpclient.HttpClientFacet
-import org.sonatype.nexus.repository.maven.internal.CoordinatesHandler
-import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicyHandler
+import org.sonatype.nexus.repository.maven.internal.MavenArtifactMatcher
+import org.sonatype.nexus.repository.maven.internal.MavenMetadataMatcher
+import org.sonatype.nexus.repository.maven.internal.MavenProxyFacet
 import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacetImpl
 import org.sonatype.nexus.repository.negativecache.NegativeCacheFacet
 import org.sonatype.nexus.repository.negativecache.NegativeCacheHandler
@@ -38,7 +39,6 @@ import org.sonatype.nexus.repository.view.Route
 import org.sonatype.nexus.repository.view.Router
 import org.sonatype.nexus.repository.view.ViewFacet
 import org.sonatype.nexus.repository.view.handlers.TimingHandler
-import org.sonatype.nexus.repository.view.matchers.token.TokenMatcher
 
 import static org.sonatype.nexus.repository.http.HttpHandlers.notFound
 
@@ -85,13 +85,10 @@ class Maven2ProxyRecipe
   ProxyHandler proxyHandler
 
   @Inject
+  MavenProxyFacet mavenProxyFacet
+
+  @Inject
   Provider<MavenContentsFacetImpl> mavenStorageFacet
-
-  @Inject
-  CoordinatesHandler coordinatesHandler
-
-  @Inject
-  VersionPolicyHandler mavenVersionPolicyHandler
 
   @Inject
   public Maven2ProxyRecipe(final @Named(ProxyType.NAME) Type type,
@@ -103,12 +100,13 @@ class Maven2ProxyRecipe
   @Override
   void apply(final @Nonnull Repository repository) throws Exception {
     repository.attach(securityFacet.get())
-    repository.attach(configure(viewFacet.get()))
-    repository.attach(httpClientFacet.get())
-    repository.attach(negativeCacheFacet.get())
     repository.attach(storageFacet.get())
+    repository.attach(negativeCacheFacet.get())
     repository.attach(searchFacet.get())
     repository.attach(mavenStorageFacet.get())
+    repository.attach(httpClientFacet.get())
+    repository.attach(mavenProxyFacet.get());
+    repository.attach(configure(viewFacet.get()))
   }
 
   /**
@@ -118,13 +116,17 @@ class Maven2ProxyRecipe
     Router.Builder builder = new Router.Builder()
 
     builder.route(new Route.Builder()
-        .matcher(new TokenMatcher("/{name:.+}"))
+        .matcher(new MavenArtifactMatcher())
         .handler(timingHandler)
-        .handler(negativeCacheHandler)
-        .handler(coordinatesHandler)
-        .handler(mavenVersionPolicyHandler)
+        .handler(securityHandler)
         .handler(proxyHandler)
-        .handler(notFound())
+        .create())
+
+    builder.route(new Route.Builder()
+        .matcher(new MavenMetadataMatcher())
+        .handler(timingHandler)
+        .handler(securityHandler)
+        .handler(proxyHandler)
         .create())
 
     builder.defaultHandlers(notFound())

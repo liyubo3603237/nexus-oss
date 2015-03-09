@@ -13,7 +13,6 @@
 package org.sonatype.nexus.repository.maven.internal;
 
 import java.util.Map;
-import java.util.Set;
 
 import javax.annotation.Nonnull;
 import javax.inject.Named;
@@ -21,6 +20,7 @@ import javax.inject.Singleton;
 
 import org.sonatype.nexus.repository.Repository;
 import org.sonatype.nexus.repository.group.GroupFacet;
+import org.sonatype.nexus.repository.group.GroupHandler.DispatchedRepositories;
 import org.sonatype.nexus.repository.http.HttpResponses;
 import org.sonatype.nexus.repository.http.HttpStatus;
 import org.sonatype.nexus.repository.view.Context;
@@ -31,10 +31,8 @@ import org.sonatype.nexus.repository.view.ViewFacet;
 import org.sonatype.sisu.goodies.common.ComponentSupport;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import static org.sonatype.nexus.repository.http.HttpMethods.GET;
-import static org.sonatype.nexus.repository.maven.internal.ContextHelper.coordinates;
 
 /**
  * Maven metadata merge handler.
@@ -47,39 +45,12 @@ public class MetadataMergeHandler
     extends ComponentSupport
     implements Handler
 {
-  /**
-   * Request-context state container for set of repositories already dispatched to.
-   */
-  private static class DispatchedRepositories
-  {
-    private final Set<String> dispatched = Sets.newHashSet();
-
-    public void add(final Repository repository) {
-      dispatched.add(repository.getName());
-    }
-
-    public boolean contains(final Repository repository) {
-      return dispatched.contains(repository.getName());
-    }
-
-    @Override
-    public String toString() {
-      return dispatched.toString();
-    }
-  }
-
   @Override
   public Response handle(final @Nonnull Context context) throws Exception {
     final String action = context.getRequest().getAction();
-    final Coordinates coordinates = coordinates(context);
     switch (action) {
       case GET: {
-        if (coordinates.main().getFileName().equals("maven-metadata.xml")) {
-          return handleMerged(context);
-        }
-        else {
-          return handleFirstFound(context);
-        }
+        return handleMerged(context);
       }
 
       default:

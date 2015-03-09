@@ -22,10 +22,10 @@ import org.sonatype.nexus.repository.Format
 import org.sonatype.nexus.repository.RecipeSupport
 import org.sonatype.nexus.repository.Repository
 import org.sonatype.nexus.repository.Type
-import org.sonatype.nexus.repository.maven.internal.CoordinatesHandler
-import org.sonatype.nexus.repository.maven.internal.MavenHostedHandler
-import org.sonatype.nexus.repository.maven.internal.policy.RedeployPolicyHandler
-import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicyHandler
+import org.sonatype.nexus.repository.maven.internal.MavenArtifactHandler
+import org.sonatype.nexus.repository.maven.internal.MavenArtifactMatcher
+import org.sonatype.nexus.repository.maven.internal.MavenMetadataHandler
+import org.sonatype.nexus.repository.maven.internal.MavenMetadataMatcher
 import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacetImpl
 import org.sonatype.nexus.repository.search.SearchFacet
 import org.sonatype.nexus.repository.security.SecurityHandler
@@ -36,7 +36,6 @@ import org.sonatype.nexus.repository.view.Route
 import org.sonatype.nexus.repository.view.Router
 import org.sonatype.nexus.repository.view.ViewFacet
 import org.sonatype.nexus.repository.view.handlers.TimingHandler
-import org.sonatype.nexus.repository.view.matchers.token.TokenMatcher
 
 import static org.sonatype.nexus.repository.http.HttpHandlers.notFound
 
@@ -74,16 +73,10 @@ class Maven2HostedRecipe
   Provider<MavenContentsFacetImpl> mavenStorageFacet
 
   @Inject
-  CoordinatesHandler coordinatesHandler
+  MavenArtifactHandler mavenArtifactHandler
 
   @Inject
-  VersionPolicyHandler mavenVersionPolicyHandler
-
-  @Inject
-  RedeployPolicyHandler mavenRedeployPolicyHandler
-
-  @Inject
-  MavenHostedHandler mavenHostedHandler
+  MavenMetadataHandler mavenMetadataHandler
 
   @Inject
   Maven2HostedRecipe(@Named(HostedType.NAME) final Type type,
@@ -105,14 +98,17 @@ class Maven2HostedRecipe
     Router.Builder builder = new Router.Builder()
 
     builder.route(new Route.Builder()
-        .matcher(new TokenMatcher("/{name:.+}"))
+        .matcher(new MavenArtifactMatcher())
         .handler(timingHandler)
         .handler(securityHandler)
-        .handler(coordinatesHandler)
-        .handler(mavenVersionPolicyHandler)
-        .handler(mavenRedeployPolicyHandler)
-        .handler(mavenHostedHandler)
-        .handler(notFound())
+        .handler(mavenArtifactHandler)
+        .create())
+
+    builder.route(new Route.Builder()
+        .matcher(new MavenMetadataMatcher())
+        .handler(timingHandler)
+        .handler(securityHandler)
+        .handler(mavenMetadataHandler)
         .create())
 
     builder.defaultHandlers(notFound())

@@ -22,9 +22,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * Maven repository coordinates. Every item in repository may have hashes, stored on paths with proper suffixes.
+ * Maven non-artifact repository coordinates. Every item in repository may have hashes, stored on paths with proper
+ * suffixes.
  *
  * @since 3.0
+ * @see ArtifactCoordinates
  */
 @Immutable
 public class Coordinates

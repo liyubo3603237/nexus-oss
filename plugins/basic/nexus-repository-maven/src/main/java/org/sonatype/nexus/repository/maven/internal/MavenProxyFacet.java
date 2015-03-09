@@ -18,7 +18,6 @@ import javax.annotation.Nonnull;
 import javax.inject.Named;
 
 import org.sonatype.nexus.repository.content.InvalidContentException;
-import org.sonatype.nexus.repository.maven.internal.Content;
 import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.proxy.ProxyFacetSupport;
 import org.sonatype.nexus.repository.view.Context;
@@ -28,14 +27,12 @@ import org.joda.time.DateTime;
 
 import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toContent;
 import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toPayload;
-import static org.sonatype.nexus.repository.maven.internal.ContextHelper.coordinates;
-import static org.sonatype.nexus.repository.maven.internal.ContextHelper.name;
 
 /**
  * @since 3.0
  */
 @Named
-public class ProxyFacetImpl
+public class MavenProxyFacet
     extends ProxyFacetSupport
 {
   @Override
@@ -65,7 +62,16 @@ public class ProxyFacetImpl
 
   @Override
   protected String getUrl(final @Nonnull Context context) {
-    return name(context);
+    return context.getRequest().getPath();
+  }
+
+  private Coordinates coordinates(final Context context) {
+    if (context.getAttributes().contains(ArtifactCoordinates.class)) {
+      return context.getAttributes().require(ArtifactCoordinates.class);
+    }
+    else {
+      return context.getAttributes().require(Coordinates.class);
+    }
   }
 
   private MavenContentsFacet storage() {
