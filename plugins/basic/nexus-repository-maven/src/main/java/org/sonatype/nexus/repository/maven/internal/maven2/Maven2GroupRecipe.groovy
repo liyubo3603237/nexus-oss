@@ -88,7 +88,7 @@ class Maven2GroupRecipe
     Router.Builder builder = new Router.Builder()
 
     builder.route(new Route.Builder()
-        .matcher(new MavenArtifactMatcher())
+        .matcher(new MavenArtifactMatcher(new Maven2ArtifactCoordinatesParser()))
         .handler(timingHandler)
         .handler(securityHandler)
         .handler(groupHandler)

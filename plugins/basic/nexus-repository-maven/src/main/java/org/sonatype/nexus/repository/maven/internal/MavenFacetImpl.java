@@ -12,16 +12,11 @@
  */
 package org.sonatype.nexus.repository.maven.internal;
 
-import java.util.Map;
-
-import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.sonatype.nexus.repository.FacetSupport;
 import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy;
 import org.sonatype.nexus.repository.util.NestedAttributesMap;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * @since 3.0
@@ -33,33 +28,17 @@ public class MavenFacetImpl
 {
   public static final String CONFIG_KEY = "maven";
 
-  private final Map<String, ArtifactCoordinatesParser> pathParsers;
-
   private VersionPolicy versionPolicy;
-
-  private ArtifactCoordinatesParser artifactCoordinatesParser;
-
-  @Inject
-  public MavenFacetImpl(final Map<String, ArtifactCoordinatesParser> pathParsers) {
-    this.pathParsers = checkNotNull(pathParsers);
-  }
 
   @Override
   protected void doConfigure() throws Exception {
     super.doConfigure();
     NestedAttributesMap attributes = getRepository().getConfiguration().attributes(CONFIG_KEY);
     this.versionPolicy = VersionPolicy.valueOf(attributes.require("repositoryPolicy", String.class));
-    this.artifactCoordinatesParser = checkNotNull(pathParsers.get(getRepository().getFormat().getValue()),
-        "No pathParser found for %s", getRepository().getFormat().getValue());
   }
 
   @Override
   public VersionPolicy getVersionPolicy() {
     return versionPolicy;
-  }
-
-  @Override
-  public ArtifactCoordinatesParser getArtifactCoordinatesParser() {
-    return artifactCoordinatesParser;
   }
 }

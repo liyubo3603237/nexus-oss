@@ -14,6 +14,8 @@ package org.sonatype.nexus.repository.maven.internal.policy;
 
 import java.util.Locale;
 
+import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates;
+
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
@@ -56,6 +58,17 @@ public class VersionPolicy
 
   private VersionPolicy(final String value) {
     this.value = checkNotNull(value);
+  }
+
+  public boolean allowsCoordinates(final ArtifactCoordinates coordinates) {
+    checkNotNull(coordinates);
+    if (this.equals(SNAPSHOT)) {
+      return coordinates.isSnapshot();
+    }
+    if (this.equals(RELEASE)) {
+      return !coordinates.isSnapshot();
+    }
+    return true;
   }
 
   public String getValue() {

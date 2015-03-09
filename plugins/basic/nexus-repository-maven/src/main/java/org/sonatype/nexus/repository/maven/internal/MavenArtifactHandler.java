@@ -17,6 +17,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.sonatype.nexus.repository.http.HttpResponses;
+import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy;
 import org.sonatype.nexus.repository.maven.internal.storage.ArtifactContentsFacet;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Handler;
@@ -46,8 +47,15 @@ public class MavenArtifactHandler
   @Override
   public Response handle(final @Nonnull Context context) throws Exception {
     final String action = context.getRequest().getAction();
-    final ArtifactCoordinates coordinates = context.getAttributes().require(ArtifactCoordinates.class);
     final ArtifactContentsFacet artifactContentsFacet = context.getRepository().facet(ArtifactContentsFacet.class);
+    final ArtifactCoordinates coordinates = context.getAttributes().require(ArtifactCoordinates.class);
+
+    final VersionPolicy versionPolicy = context.getRepository().facet(MavenFacet.class).getVersionPolicy();
+    if (!versionPolicy.allowsCoordinates(coordinates)) {
+      return HttpResponses.badRequest(
+          "Repository version policy '" + versionPolicy + "' does not allow version '" +
+              coordinates.getVersion() + "'");
+    }
     switch (action) {
       case GET: {
         final Content content = artifactContentsFacet.get(coordinates);

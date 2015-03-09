@@ -93,6 +93,8 @@ class Maven2ProxyRecipe
   @Inject
   Provider<MetadataContentsFacetImpl> metadataContentsFacet
 
+  Maven2ArtifactCoordinatesParser artifactCoordinatesParser
+
   @Inject
   public Maven2ProxyRecipe(final @Named(ProxyType.NAME) Type type,
                            final @Named(Maven2Format.NAME) Format format)
@@ -120,7 +122,7 @@ class Maven2ProxyRecipe
     Router.Builder builder = new Router.Builder()
 
     builder.route(new Route.Builder()
-        .matcher(new MavenArtifactMatcher())
+        .matcher(new MavenArtifactMatcher(new Maven2ArtifactCoordinatesParser()))
         .handler(timingHandler)
         .handler(securityHandler)
         .handler(proxyHandler)

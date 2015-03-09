@@ -28,8 +28,6 @@ import com.google.common.base.Strings;
  *
  * @since 3.0
  */
-@Named(Maven2Format.NAME)
-@Singleton
 public class Maven2ArtifactCoordinatesParser
     implements ArtifactCoordinatesParser
 {
