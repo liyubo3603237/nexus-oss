@@ -52,7 +52,7 @@ import static org.sonatype.nexus.common.hash.HashAlgorithm.MD5;
 import static org.sonatype.nexus.common.hash.HashAlgorithm.SHA1;
 
 /**
- * A {@link MavenContentsFacet} that persists Maven metadata as assets to a {@link StorageFacet}.
+ * A {@link MavenContentsFacet} that persists Maven artifacts and metadata to a {@link StorageFacet}.
  *
  * @since 3.0
  */
@@ -73,15 +73,9 @@ public class MavenContentsFacetImpl
 
   private static final String P_EXTENSION = "extension";
 
-  private static final String P_SNAPSHOT = "snapshot";
+  private static final String P_SNAPSHOT = "snapshot"; // boolean
 
-  private static final String P_SHA1_HASHCODE = "sha1";
-
-  private static final String P_MD5_HASHCODE = "md5";
-
-  private static final String P_EXT_SHA1_HASHCODE = "extsha1";
-
-  private static final String P_EXT_MD5_HASHCODE = "extmd5";
+  private static final String P_EXT_HASHCODES = "exthashcodes"; // child map keyed by HashCode.ext
 
   private final static List<HashAlgorithm> hashAlgorithms = Lists.newArrayList(MD5, SHA1);
 
@@ -112,8 +106,13 @@ public class MavenContentsFacetImpl
         return marshall(asset, blob);
       }
       else {
-        // TODO: get HashCode attribute and make it a content
-        throw new RuntimeException("tbd");
+        final NestedAttributesMap extHashes =
+            tx.getAttributes(asset).child(getRepository().getFormat().getValue()).child(P_EXT_HASHCODES);
+        final String extHash = extHashes.get(coordinates.getHashType().getExt(), String.class);
+        if (extHash == null) {
+          return null; // unknown external hash
+        }
+        return marshall(asset, extHash);
       }
     }
   }
@@ -203,7 +202,8 @@ public class MavenContentsFacetImpl
 
   // TODO: Consider a top-level indexed property (e.g. "locator") to make these common lookups fast
   private OrientVertex getArtifactComponent(StorageTx tx, ArtifactCoordinates coordinates, OrientVertex bucket) {
-    String property = String.format("%s.%s.%s", StorageFacet.P_ATTRIBUTES, getRepository().getFormat().getValue(), StorageFacet.P_PATH);
+    String property = String
+        .format("%s.%s.%s", StorageFacet.P_ATTRIBUTES, getRepository().getFormat().getValue(), StorageFacet.P_PATH);
     return tx.findComponentWithProperty(property, coordinates.getPath(), bucket);
   }
 
@@ -231,8 +231,13 @@ public class MavenContentsFacetImpl
         return marshall(asset, blob);
       }
       else {
-        // TODO: get HashCode attribute and make it a content
-        throw new RuntimeException("tbd");
+        final NestedAttributesMap extHashes =
+            tx.getAttributes(asset).child(getRepository().getFormat().getValue()).child(P_EXT_HASHCODES);
+        final String extHash = extHashes.get(coordinates.getHashType().getExt(), String.class);
+        if (extHash == null) {
+          return null; // unknown external hash
+        }
+        return marshall(asset, extHash);
       }
     }
   }
@@ -251,7 +256,8 @@ public class MavenContentsFacetImpl
         asset.setProperty(StorageFacet.P_NAME, coordinates.getPath());
 
         // "key", see getArtifactAsset?
-        tx.getAttributes(asset).child(getRepository().getFormat().getValue()).set(StorageFacet.P_PATH, coordinates.getPath());
+        tx.getAttributes(asset).child(getRepository().getFormat().getValue())
+            .set(StorageFacet.P_PATH, coordinates.getPath());
       }
 
       // TODO: Figure out created-by header
@@ -260,6 +266,7 @@ public class MavenContentsFacetImpl
           BlobStore.CREATED_BY_HEADER, "unknown"
       );
 
+      // TODO: hash the content for SHA1 and MD5?
       try (TempStreamSupplier supplier = new TempStreamSupplier(content.openInputStream())) {
         try (InputStream is1 = supplier.get(); InputStream is2 = supplier.get()) {
           tx.setBlob(is1, headers, asset, hashAlgorithms,
