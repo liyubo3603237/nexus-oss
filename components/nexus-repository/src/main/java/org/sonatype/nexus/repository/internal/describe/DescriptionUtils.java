@@ -16,8 +16,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.sonatype.nexus.repository.util.StringMultimap;
+import org.sonatype.nexus.repository.view.Payload;
+import org.sonatype.nexus.repository.view.PayloadResponse;
+import org.sonatype.nexus.repository.view.Request;
+import org.sonatype.nexus.repository.view.Response;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+
+import static com.google.common.base.Strings.nullToEmpty;
 
 /**
  * Utility methods for transforming content int
@@ -44,5 +51,62 @@ public class DescriptionUtils
       table.put(e.getKey(), e.getValue());
     }
     return table;
+  }
+
+  public static void describeRequest(final Description desc, final Request request) {
+    desc.topic("Request");
+
+    desc.addTable("Details", ImmutableMap.<String, Object>builder()
+            .put("Action", request.getAction())
+            .put("URL", request.getRequestUrl())
+            .put("path", request.getPath()).build()
+    );
+
+    if (request.isMultipart()) {
+      for (Payload payload : request.getMultiparts()) {
+        desc.add("Request payload", toMap(payload));
+      }
+    }
+    else {
+      desc.add("Payload", request.getPayload());
+    }
+
+    desc.addTable("Headers", toMap(request.getHeaders()));
+    desc.addTable("Attributes", toMap(request.getAttributes()));
+  }
+
+  public static void describeResponse(final Description desc, final Response response)
+  {
+    desc.topic("Response");
+
+    desc.addTable("Headers", toMap(response.getHeaders()));
+    desc.addTable("Attributes", toMap(response.getAttributes()));
+
+    if (response instanceof PayloadResponse) {
+      final PayloadResponse payloadResponse = (PayloadResponse) response;
+      final Payload payload = payloadResponse.getPayload();
+      desc.addTable("Response payload", toMap(payload));
+    }
+  }
+
+  public static ImmutableMap<String, Object> toMap(final Payload payload) {
+    return ImmutableMap.<String, Object>of(
+        "Content-Type", nullToEmpty(payload.getContentType()),
+        "Size", payload.getSize()
+    );
+  }
+
+  public static void describeException(final Description d, final Exception e) {
+    d.topic("Exception during handler processing");
+
+    Throwable ex = e;
+    while (ex != null) {
+      d.add("Exception during handler processing",
+          ImmutableMap.of(
+              "Class", ex.getClass().getSimpleName(),
+              "Message", nullToEmpty(e.getMessage())
+          ));
+      ex = ex.getCause();
+    }
   }
 }

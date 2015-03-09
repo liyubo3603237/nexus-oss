@@ -20,8 +20,6 @@
   <link rel="SHORTCUT ICON" href="$nexusUrl/favicon.ico"/>
   <![endif]-->
 
-  <!-- TODO Stylesheet -->
-
   #macro(table $map)
     #if($map.isEmpty())
       <p>No entries</p>
