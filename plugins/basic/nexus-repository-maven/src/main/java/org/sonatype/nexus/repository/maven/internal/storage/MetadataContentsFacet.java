@@ -19,6 +19,7 @@ import javax.annotation.Nullable;
 import org.sonatype.nexus.repository.Facet;
 import org.sonatype.nexus.repository.content.InvalidContentException;
 import org.sonatype.nexus.repository.maven.internal.Content;
+import org.sonatype.nexus.repository.maven.internal.Contents;
 import org.sonatype.nexus.repository.maven.internal.Coordinates;
 
 import org.joda.time.DateTime;
@@ -30,16 +31,7 @@ import org.joda.time.DateTime;
  */
 @Facet.Exposed
 public interface MetadataContentsFacet
-    extends Facet
+    extends Facet, Contents<Coordinates>
 {
-  @Nullable
-  Content get(Coordinates coordinates) throws IOException;
-
-  void put(Coordinates coordinates, Content content) throws IOException, InvalidContentException;
-
-  boolean delete(Coordinates coordinates) throws IOException;
-
-  boolean exists(Coordinates coordinates) throws IOException;
-
   void updateLastUpdated(Coordinates coordinates, final DateTime lastUpdated) throws IOException;
 }

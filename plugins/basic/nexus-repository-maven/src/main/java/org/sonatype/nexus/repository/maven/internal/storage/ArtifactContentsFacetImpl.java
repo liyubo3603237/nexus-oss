@@ -26,15 +26,15 @@ import org.sonatype.nexus.blobstore.api.Blob;
 import org.sonatype.nexus.blobstore.api.BlobRef;
 import org.sonatype.nexus.blobstore.api.BlobStore;
 import org.sonatype.nexus.common.hash.HashAlgorithm;
+import org.sonatype.nexus.common.io.TempStreamSupplier;
 import org.sonatype.nexus.mime.MimeSupport;
 import org.sonatype.nexus.repository.FacetSupport;
 import org.sonatype.nexus.repository.content.InvalidContentException;
-import org.sonatype.nexus.repository.maven.internal.Content;
 import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates;
+import org.sonatype.nexus.repository.maven.internal.Content;
 import org.sonatype.nexus.repository.maven.internal.Coordinates;
 import org.sonatype.nexus.repository.storage.StorageFacet;
 import org.sonatype.nexus.repository.storage.StorageTx;
-import org.sonatype.nexus.repository.util.NestedAttributesMap;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -59,8 +59,6 @@ public class ArtifactContentsFacetImpl
     extends FacetSupport
     implements ArtifactContentsFacet
 {
-  public static final String CONFIG_KEY = "mavenStorage";
-
   private final static List<HashAlgorithm> hashAlgorithms = Lists.newArrayList(MD5, SHA1);
 
   private final MimeSupport mimeSupport;
@@ -73,17 +71,11 @@ public class ArtifactContentsFacetImpl
     this.mimeSupport = checkNotNull(mimeSupport);
   }
 
-  @Override
-  protected void doConfigure() throws Exception {
-    NestedAttributesMap attributes = getRepository().getConfiguration().attributes(CONFIG_KEY);
-    this.strictContentTypeValidation = checkNotNull(attributes.require("strictContentTypeValidation", Boolean.class));
-  }
-
   @Nullable
   @Override
   public Content get(final ArtifactCoordinates coordinates) {
     try (StorageTx tx = getStorage().openTx()) {
-      final OrientVertex component = getComponent(tx, coordinates.getPath(), tx.getBucket());
+      final OrientVertex component = getComponent(tx, coordinates, tx.getBucket());
       if (component == null) {
         return null;
       }
@@ -99,10 +91,12 @@ public class ArtifactContentsFacetImpl
   }
 
   @Override
-  public void put(final ArtifactCoordinates coordinates, final Content content) throws IOException, InvalidContentException {
+  public void put(final ArtifactCoordinates coordinates, final Content content)
+      throws IOException, InvalidContentException
+  {
     try (StorageTx tx = getStorage().openTx()) {
       final OrientVertex bucket = tx.getBucket();
-      OrientVertex component = getComponent(tx, coordinates.getPath(), bucket);
+      OrientVertex component = getComponent(tx, coordinates, bucket);
       OrientVertex asset;
       if (component == null) {
         // CREATE
@@ -110,34 +104,26 @@ public class ArtifactContentsFacetImpl
 
         // Set normalized properties: format, group, and name
         component.setProperty(P_FORMAT, getRepository().getFormat().getValue()); // M1 or M2!!!
-        if (coordinates instanceof ArtifactCoordinates) {
-          final ArtifactCoordinates artifactCoordinates = (ArtifactCoordinates) coordinates;
-          component.setProperty(P_GROUP, artifactCoordinates.getGroupId());
-          component.setProperty(P_NAME, artifactCoordinates.getArtifactId());
-          component.setProperty(P_VERSION, artifactCoordinates.getBaseVersion());
-        }
-        else {
-          component.setProperty(P_NAME, coordinates.getPath());
-        }
+        final ArtifactCoordinates artifactCoordinates = (ArtifactCoordinates) coordinates;
+        component.setProperty(P_GROUP, artifactCoordinates.getGroupId());
+        component.setProperty(P_NAME, artifactCoordinates.getArtifactId());
+        component.setProperty(P_VERSION, artifactCoordinates.getBaseVersion());
 
         // Set attributes map to contain "raw" format-specific metadata (in this case, path)
         tx.getAttributes(component).child(getRepository().getFormat().getValue()).set(P_PATH, coordinates.getPath());
-        if (coordinates instanceof ArtifactCoordinates) {
-          final ArtifactCoordinates artifactCoordinates = (ArtifactCoordinates) coordinates;
+        tx.getAttributes(component).child(getRepository().getFormat().getValue())
+            .set("groupId", artifactCoordinates.getGroupId());
+        tx.getAttributes(component).child(getRepository().getFormat().getValue())
+            .set("artifactId", artifactCoordinates.getArtifactId());
+        tx.getAttributes(component).child(getRepository().getFormat().getValue())
+            .set("version", artifactCoordinates.getVersion());
+        tx.getAttributes(component).child(getRepository().getFormat().getValue())
+            .set("baseVersion", artifactCoordinates.getBaseVersion());
+        tx.getAttributes(component).child(getRepository().getFormat().getValue())
+            .set("extension", artifactCoordinates.getExtension());
+        if (artifactCoordinates.getClassifier() != null) {
           tx.getAttributes(component).child(getRepository().getFormat().getValue())
-              .set("groupId", artifactCoordinates.getGroupId());
-          tx.getAttributes(component).child(getRepository().getFormat().getValue())
-              .set("artifactId", artifactCoordinates.getArtifactId());
-          tx.getAttributes(component).child(getRepository().getFormat().getValue())
-              .set("version", artifactCoordinates.getVersion());
-          tx.getAttributes(component).child(getRepository().getFormat().getValue())
-              .set("baseVersion", artifactCoordinates.getBaseVersion());
-          tx.getAttributes(component).child(getRepository().getFormat().getValue())
-              .set("extension", artifactCoordinates.getExtension());
-          if (artifactCoordinates.getClassifier() != null) {
-            tx.getAttributes(component).child(getRepository().getFormat().getValue())
-                .set("classifier", artifactCoordinates.getClassifier());
-          }
+              .set("classifier", artifactCoordinates.getClassifier());
         }
 
         asset = tx.createAsset(bucket);
@@ -149,11 +135,16 @@ public class ArtifactContentsFacetImpl
       }
 
       // TODO: Figure out created-by header
-      final ImmutableMap<String, String> headers = ImmutableMap
-          .of(BlobStore.BLOB_NAME_HEADER, coordinates.getPath(), BlobStore.CREATED_BY_HEADER, "unknown");
+      final ImmutableMap<String, String> headers = ImmutableMap.of(
+          BlobStore.BLOB_NAME_HEADER, coordinates.getPath(),
+          BlobStore.CREATED_BY_HEADER, "unknown"
+      );
 
-      try (InputStream in = content.openInputStream()) {
-        tx.setBlob(in, headers, asset, hashAlgorithms, determineContentType(coordinates.getPath(), content));
+      try (TempStreamSupplier supplier = new TempStreamSupplier(content.openInputStream())) {
+        try (InputStream is1 = supplier.get(); InputStream is2 = supplier.get()) {
+          tx.setBlob(is1, headers, asset, hashAlgorithms,
+              determineContentType(coordinates, is2, content.getContentType()));
+        }
       }
 
       final DateTime lastUpdated = content.getLastUpdated();
@@ -169,22 +160,24 @@ public class ArtifactContentsFacetImpl
    * Determines or confirms the content type for the content, or throws {@link InvalidContentException} if it cannot.
    */
   @Nonnull
-  private String determineContentType(final String path, final Content content) throws IOException {
-    String contentType = content.getContentType();
+  private String determineContentType(final Coordinates coordinates,
+                                      final InputStream is,
+                                      final String declaredContentType)
+      throws IOException
+  {
+    String contentType = declaredContentType;
 
     if (contentType == null) {
-      log.trace("Content PUT to {} has no content type.", path);
-      try (InputStream is = content.openInputStream()) {
-        contentType = mimeSupport.detectMimeType(is, path);
-        log.trace("Mime support implies content type {}", contentType);
-      }
+      log.trace("Content PUT to {} has no content type.", coordinates);
+      contentType = mimeSupport.detectMimeType(is, coordinates.getPath());
+      log.trace("Mime support implies content type {}", contentType);
 
       if (contentType == null && strictContentTypeValidation) {
         throw new InvalidContentException(String.format("Content type could not be determined."));
       }
     }
     else {
-      final List<String> types = mimeSupport.detectMimeTypes(content.openInputStream(), path);
+      final List<String> types = mimeSupport.detectMimeTypes(is, coordinates.getPath());
       if (!types.isEmpty() && !types.contains(contentType)) {
         log.debug("Discovered content type {} ", types.get(0));
         if (strictContentTypeValidation) {
@@ -199,7 +192,7 @@ public class ArtifactContentsFacetImpl
   @Override
   public boolean delete(final ArtifactCoordinates coordinates) throws IOException {
     try (StorageTx tx = getStorage().openTx()) {
-      final OrientVertex component = getComponent(tx, coordinates.getPath(), tx.getBucket());
+      final OrientVertex component = getComponent(tx, coordinates, tx.getBucket());
       if (component == null) {
         return false;
       }
@@ -216,25 +209,13 @@ public class ArtifactContentsFacetImpl
   }
 
   @Override
-  public boolean exists(final ArtifactCoordinates coordinates) throws IOException {
-    try (StorageTx tx = getStorage().openTx()) {
-      final OrientVertex component = getComponent(tx, coordinates.getPath(), tx.getBucket());
-      if (component == null) {
-        return false;
-      }
-      tx.commit();
-      return true;
-    }
-  }
-
-  @Override
   public void updateLastUpdated(final ArtifactCoordinates coordinates, final DateTime lastUpdated) throws IOException {
     try (StorageTx tx = getStorage().openTx()) {
       OrientVertex bucket = tx.getBucket();
       OrientVertex component = tx.findComponentWithProperty(P_PATH, coordinates.getPath(), bucket);
 
       if (component == null) {
-        log.debug("Updating lastUpdated time for nonexistant raw component {}", coordinates.getPath());
+        log.debug("Updating lastUpdated time for nonexistent maven component {}", coordinates.getPath());
         return;
       }
 
@@ -265,9 +246,9 @@ public class ArtifactContentsFacetImpl
   }
 
   // TODO: Consider a top-level indexed property (e.g. "locator") to make these common lookups fast
-  private OrientVertex getComponent(StorageTx tx, String path, OrientVertex bucket) {
+  private OrientVertex getComponent(StorageTx tx, ArtifactCoordinates coordinates, OrientVertex bucket) {
     String property = String.format("%s.%s.%s", P_ATTRIBUTES, getRepository().getFormat().getValue(), P_PATH);
-    return tx.findComponentWithProperty(property, path, bucket);
+    return tx.findComponentWithProperty(property, coordinates.getPath(), bucket);
   }
 
   private Content marshall(final OrientVertex asset, final Blob blob) {

@@ -10,25 +10,25 @@
  * of Sonatype, Inc. Apache Maven is a trademark of the Apache Software Foundation. M2eclipse is a trademark of the
  * Eclipse Foundation. All other trademarks are the property of their respective owners.
  */
-package org.sonatype.nexus.repository.maven.internal.storage;
+package org.sonatype.nexus.repository.maven.internal;
 
 import java.io.IOException;
 
-import org.sonatype.nexus.repository.Facet;
-import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates;
-import org.sonatype.nexus.repository.maven.internal.Contents;
-import org.sonatype.nexus.repository.maven.internal.Coordinates;
+import javax.annotation.Nullable;
 
-import org.joda.time.DateTime;
+import org.sonatype.nexus.repository.content.InvalidContentException;
 
 /**
- * Provides persistent storage for Maven Artifacts.
+ * Basic contents interface.
  *
  * @since 3.0
  */
-@Facet.Exposed
-public interface ArtifactContentsFacet
-    extends Facet, Contents<ArtifactCoordinates>
+public interface Contents<C extends Coordinates>
 {
-  void updateLastUpdated(ArtifactCoordinates coordinates, final DateTime lastUpdated) throws IOException;
+  @Nullable
+  Content get(C coordinates) throws IOException;
+
+  void put(C coordinates, Content content) throws IOException, InvalidContentException;
+
+  boolean delete(C coordinates) throws IOException;
 }
