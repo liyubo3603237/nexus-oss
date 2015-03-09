@@ -25,8 +25,7 @@ import org.sonatype.nexus.repository.Type
 import org.sonatype.nexus.repository.httpclient.HttpClientFacet
 import org.sonatype.nexus.repository.maven.internal.MavenArtifactMatcher
 import org.sonatype.nexus.repository.maven.internal.MavenMetadataMatcher
-import org.sonatype.nexus.repository.maven.internal.storage.ArtifactContentsFacetImpl
-import org.sonatype.nexus.repository.maven.internal.storage.MetadataContentsFacetImpl
+import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacetImpl
 import org.sonatype.nexus.repository.negativecache.NegativeCacheFacet
 import org.sonatype.nexus.repository.negativecache.NegativeCacheHandler
 import org.sonatype.nexus.repository.proxy.ProxyHandler
@@ -88,12 +87,7 @@ class Maven2ProxyRecipe
   //Provider<MavenArtifactProxyFacet> mavenArtifactProxyFacet
 
   @Inject
-  Provider<ArtifactContentsFacetImpl> artifactContentsFacet
-
-  @Inject
-  Provider<MetadataContentsFacetImpl> metadataContentsFacet
-
-  Maven2ArtifactCoordinatesParser artifactCoordinatesParser
+  Provider<MavenContentsFacetImpl> mavenContentsFacet
 
   @Inject
   public Maven2ProxyRecipe(final @Named(ProxyType.NAME) Type type,
@@ -110,8 +104,7 @@ class Maven2ProxyRecipe
     repository.attach(searchFacet.get())
     repository.attach(httpClientFacet.get())
     //repository.attach(mavenArtifactProxyFacet.get());
-    repository.attach(artifactContentsFacet.get())
-    repository.attach(metadataContentsFacet.get())
+    repository.attach(mavenContentsFacet.get())
     repository.attach(configure(viewFacet.get()))
   }
 

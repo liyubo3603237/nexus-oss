@@ -14,21 +14,34 @@ package org.sonatype.nexus.repository.maven.internal.storage;
 
 import java.io.IOException;
 
+import javax.annotation.Nullable;
+
 import org.sonatype.nexus.repository.Facet;
+import org.sonatype.nexus.repository.content.InvalidContentException;
 import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates;
-import org.sonatype.nexus.repository.maven.internal.Contents;
+import org.sonatype.nexus.repository.maven.internal.Content;
 import org.sonatype.nexus.repository.maven.internal.Coordinates;
 
-import org.joda.time.DateTime;
-
 /**
- * Provides persistent storage for Maven Artifacts.
+ * Provides persistent storage for Maven metadata.
  *
  * @since 3.0
  */
 @Facet.Exposed
-public interface ArtifactContentsFacet
-    extends Facet, Contents<ArtifactCoordinates>
+public interface MavenContentsFacet
+    extends Facet
 {
-  void updateLastUpdated(ArtifactCoordinates coordinates, final DateTime lastUpdated) throws IOException;
+  @Nullable
+  Content getArtifact(ArtifactCoordinates coordinates) throws IOException;
+
+  void putArtifact(ArtifactCoordinates coordinates, Content content) throws IOException, InvalidContentException;
+
+  boolean deleteArtifact(ArtifactCoordinates coordinates) throws IOException;
+
+  @Nullable
+  Content getMetadata(Coordinates coordinates) throws IOException;
+
+  void putMetadata(Coordinates coordinates, Content content) throws IOException, InvalidContentException;
+
+  boolean deleteMetadata(Coordinates coordinates) throws IOException;
 }

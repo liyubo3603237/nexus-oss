@@ -18,7 +18,7 @@ import javax.inject.Singleton;
 
 import org.sonatype.nexus.repository.http.HttpResponses;
 import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy;
-import org.sonatype.nexus.repository.maven.internal.storage.ArtifactContentsFacet;
+import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Handler;
 import org.sonatype.nexus.repository.view.Response;
@@ -47,7 +47,7 @@ public class MavenArtifactHandler
   @Override
   public Response handle(final @Nonnull Context context) throws Exception {
     final String action = context.getRequest().getAction();
-    final ArtifactContentsFacet artifactContentsFacet = context.getRepository().facet(ArtifactContentsFacet.class);
+    final MavenContentsFacet mavenContentsFacet = context.getRepository().facet(MavenContentsFacet.class);
     final ArtifactCoordinates coordinates = context.getAttributes().require(ArtifactCoordinates.class);
 
     final VersionPolicy versionPolicy = context.getRepository().facet(MavenFacet.class).getVersionPolicy();
@@ -58,7 +58,7 @@ public class MavenArtifactHandler
     }
     switch (action) {
       case GET: {
-        final Content content = artifactContentsFacet.get(coordinates);
+        final Content content = mavenContentsFacet.getArtifact(coordinates);
         if (content == null) {
           return HttpResponses.notFound(coordinates.getPath());
         }
@@ -67,12 +67,12 @@ public class MavenArtifactHandler
 
       case PUT: {
         final Content content = toContent(context.getRequest().getPayload(), new DateTime());
-        artifactContentsFacet.put(coordinates, content);
+        mavenContentsFacet.putArtifact(coordinates, content);
         return HttpResponses.created();
       }
 
       case DELETE: {
-        final boolean deleted = artifactContentsFacet.delete(coordinates);
+        final boolean deleted = mavenContentsFacet.deleteArtifact(coordinates);
         if (!deleted) {
           return HttpResponses.notFound(coordinates.getPath());
         }

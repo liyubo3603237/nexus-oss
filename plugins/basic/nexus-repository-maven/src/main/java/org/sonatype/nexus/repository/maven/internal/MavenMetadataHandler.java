@@ -17,8 +17,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import org.sonatype.nexus.repository.http.HttpResponses;
-import org.sonatype.nexus.repository.maven.internal.storage.ArtifactContentsFacet;
-import org.sonatype.nexus.repository.maven.internal.storage.MetadataContentsFacet;
+import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Handler;
 import org.sonatype.nexus.repository.view.Response;
@@ -47,11 +46,11 @@ public class MavenMetadataHandler
   @Override
   public Response handle(final @Nonnull Context context) throws Exception {
     final String action = context.getRequest().getAction();
+    final MavenContentsFacet mavenContentsFacet = context.getRepository().facet(MavenContentsFacet.class);
     final Coordinates coordinates = context.getAttributes().require(Coordinates.class);
-    final MetadataContentsFacet metadataContentsFacet = context.getRepository().facet(MetadataContentsFacet.class);
     switch (action) {
       case GET: {
-        final Content content = metadataContentsFacet.get(coordinates);
+        final Content content = mavenContentsFacet.getMetadata(coordinates);
         if (content == null) {
           return HttpResponses.notFound(coordinates.getPath());
         }
@@ -60,12 +59,12 @@ public class MavenMetadataHandler
 
       case PUT: {
         final Content content = toContent(context.getRequest().getPayload(), new DateTime());
-        metadataContentsFacet.put(coordinates, content);
+        mavenContentsFacet.putMetadata(coordinates, content);
         return HttpResponses.created();
       }
 
       case DELETE: {
-        final boolean deleted = metadataContentsFacet.delete(coordinates);
+        final boolean deleted = mavenContentsFacet.deleteMetadata(coordinates);
         if (!deleted) {
           return HttpResponses.notFound(coordinates.getPath());
         }

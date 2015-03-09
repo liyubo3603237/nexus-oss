@@ -12,6 +12,7 @@
  */
 package org.sonatype.nexus.repository.maven.internal.storage;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
@@ -36,6 +37,7 @@ import org.sonatype.nexus.repository.maven.internal.Coordinates;
 import org.sonatype.nexus.repository.storage.StorageFacet;
 import org.sonatype.nexus.repository.storage.StorageTx;
 
+import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.tinkerpop.blueprints.Direction;
@@ -50,14 +52,14 @@ import static org.sonatype.nexus.common.hash.HashAlgorithm.SHA1;
 import static org.sonatype.nexus.repository.storage.StorageFacet.*;
 
 /**
- * A {@link ArtifactContentsFacet} that persists Maven artifacts as components to a {@link StorageFacet}.
+ * A {@link MetadataContentsFacet} that persists Maven metadata as assets to a {@link StorageFacet}.
  *
  * @since 3.0
  */
 @Named
-public class ArtifactContentsFacetImpl
+public class MavenContentsFacetImpl
     extends FacetSupport
-    implements ArtifactContentsFacet
+    implements MavenContentsFacet
 {
   private final static List<HashAlgorithm> hashAlgorithms = Lists.newArrayList(MD5, SHA1);
 
@@ -66,37 +68,41 @@ public class ArtifactContentsFacetImpl
   private boolean strictContentTypeValidation = false;
 
   @Inject
-  public ArtifactContentsFacetImpl(final MimeSupport mimeSupport)
-  {
+  public MavenContentsFacetImpl(final MimeSupport mimeSupport) {
     this.mimeSupport = checkNotNull(mimeSupport);
   }
 
   @Nullable
   @Override
-  public Content get(final ArtifactCoordinates coordinates) {
+  public Content getArtifact(final ArtifactCoordinates coordinates) throws IOException {
     try (StorageTx tx = getStorage().openTx()) {
-      final OrientVertex component = getComponent(tx, coordinates, tx.getBucket());
+      final OrientVertex component = getArtifactComponent(tx, coordinates, tx.getBucket());
       if (component == null) {
         return null;
       }
 
-      final OrientVertex asset = getAsset(component);
-      final BlobRef blobRef = getBlobRef(coordinates.getPath(), asset);
-      final Blob blob = tx.getBlob(blobRef);
-      checkState(blob != null, "asset of component with at path %s refers to missing blob %s", coordinates.getPath(),
-          blobRef);
-
-      return marshall(asset, blob);
+      final OrientVertex asset = getArtifactAsset(component);
+      if (!coordinates.isSubordinate()) {
+        final BlobRef blobRef = getBlobRef(coordinates, asset);
+        final Blob blob = tx.getBlob(blobRef);
+        checkState(blob != null, "asset of component with at path %s refers to missing blob %s", coordinates.getPath(),
+            blobRef);
+        return marshall(asset, blob);
+      }
+      else {
+        // TODO: get HashCode attribute and make it a content
+        throw new RuntimeException("tbd");
+      }
     }
   }
 
   @Override
-  public void put(final ArtifactCoordinates coordinates, final Content content)
+  public void putArtifact(final ArtifactCoordinates coordinates, final Content content)
       throws IOException, InvalidContentException
   {
     try (StorageTx tx = getStorage().openTx()) {
       final OrientVertex bucket = tx.getBucket();
-      OrientVertex component = getComponent(tx, coordinates, bucket);
+      OrientVertex component = getArtifactComponent(tx, coordinates, bucket);
       OrientVertex asset;
       if (component == null) {
         // CREATE
@@ -131,7 +137,7 @@ public class ArtifactContentsFacetImpl
       }
       else {
         // UPDATE
-        asset = getAsset(component);
+        asset = getArtifactAsset(component);
       }
 
       // TODO: Figure out created-by header
@@ -153,6 +159,116 @@ public class ArtifactContentsFacetImpl
       }
 
       tx.commit();
+    }
+  }
+
+  @Override
+  public boolean deleteArtifact(final ArtifactCoordinates coordinates) throws IOException {
+    try (StorageTx tx = getStorage().openTx()) {
+      final OrientVertex component = getArtifactComponent(tx, coordinates, tx.getBucket());
+      if (component == null) {
+        return false;
+      }
+      OrientVertex asset = getArtifactAsset(component);
+
+      tx.deleteBlob(getBlobRef(coordinates, asset));
+      tx.deleteVertex(asset);
+      tx.deleteVertex(component);
+
+      tx.commit();
+
+      return true;
+    }
+  }
+
+  // TODO: Consider a top-level indexed property (e.g. "locator") to make these common lookups fast
+  private OrientVertex getArtifactComponent(StorageTx tx, ArtifactCoordinates coordinates, OrientVertex bucket) {
+    String property = String.format("%s.%s.%s", P_ATTRIBUTES, getRepository().getFormat().getValue(), P_PATH);
+    return tx.findComponentWithProperty(property, coordinates.getPath(), bucket);
+  }
+
+  private OrientVertex getArtifactAsset(OrientVertex component) {
+    List<Vertex> vertices = Lists.newArrayList(component.getVertices(Direction.IN, E_PART_OF_COMPONENT));
+    checkState(!vertices.isEmpty());
+    return (OrientVertex) vertices.get(0);
+  }
+
+  @Nullable
+  @Override
+  public Content getMetadata(final Coordinates coordinates) {
+    try (StorageTx tx = getStorage().openTx()) {
+      OrientVertex asset = tx.findAssetWithProperty(P_PATH, coordinates.getPath(), tx.getBucket());
+      if (asset == null) {
+        return null;
+      }
+
+      if (!coordinates.isSubordinate()) {
+        final BlobRef blobRef = getBlobRef(coordinates, asset);
+        final Blob blob = tx.getBlob(blobRef);
+        checkState(blob != null, "asset of component with at path %s refers to missing blob %s", coordinates.getPath(),
+            blobRef);
+
+        return marshall(asset, blob);
+      }
+      else {
+        // TODO: get HashCode attribute and make it a content
+        throw new RuntimeException("tbd");
+      }
+    }
+  }
+
+  @Override
+  public void putMetadata(final Coordinates coordinates, final Content content)
+      throws IOException, InvalidContentException
+  {
+    try (StorageTx tx = getStorage().openTx()) {
+      OrientVertex asset = tx.findAssetWithProperty(P_PATH, coordinates.getPath(), tx.getBucket());
+      if (asset == null) {
+        // CREATE
+        asset = tx.createAsset(tx.getBucket());
+
+        asset.setProperty(P_FORMAT, getRepository().getFormat().getValue());
+        asset.setProperty(P_NAME, coordinates.getPath());
+
+        // "key", see getArtifactAsset?
+        tx.getAttributes(asset).child(getRepository().getFormat().getValue()).set(P_PATH, coordinates.getPath());
+      }
+
+      // TODO: Figure out created-by header
+      final ImmutableMap<String, String> headers = ImmutableMap.of(
+          BlobStore.BLOB_NAME_HEADER, coordinates.getPath(),
+          BlobStore.CREATED_BY_HEADER, "unknown"
+      );
+
+      try (TempStreamSupplier supplier = new TempStreamSupplier(content.openInputStream())) {
+        try (InputStream is1 = supplier.get(); InputStream is2 = supplier.get()) {
+          tx.setBlob(is1, headers, asset, hashAlgorithms,
+              determineContentType(coordinates, is2, content.getContentType()));
+        }
+      }
+
+      final DateTime lastUpdated = content.getLastUpdated();
+      if (lastUpdated != null) {
+        asset.setProperty(P_LAST_UPDATED, new Date(lastUpdated.getMillis()));
+        asset.setProperty(P_PATH, coordinates.getPath());
+      }
+
+      tx.commit();
+    }
+  }
+
+  @Override
+  public boolean deleteMetadata(final Coordinates coordinates) throws IOException {
+    try (StorageTx tx = getStorage().openTx()) {
+      OrientVertex asset = tx.findAssetWithProperty(P_PATH, coordinates.getPath(), tx.getBucket());
+      if (asset == null) {
+        return false;
+      }
+
+      tx.deleteBlob(getBlobRef(coordinates, asset));
+      tx.deleteVertex(asset);
+      tx.commit();
+      return true;
     }
   }
 
@@ -189,66 +305,17 @@ public class ArtifactContentsFacetImpl
     return contentType;
   }
 
-  @Override
-  public boolean delete(final ArtifactCoordinates coordinates) throws IOException {
-    try (StorageTx tx = getStorage().openTx()) {
-      final OrientVertex component = getComponent(tx, coordinates, tx.getBucket());
-      if (component == null) {
-        return false;
-      }
-      OrientVertex asset = getAsset(component);
-
-      tx.deleteBlob(getBlobRef(coordinates.getPath(), asset));
-      tx.deleteVertex(asset);
-      tx.deleteVertex(component);
-
-      tx.commit();
-
-      return true;
-    }
-  }
-
-  @Override
-  public void updateLastUpdated(final ArtifactCoordinates coordinates, final DateTime lastUpdated) throws IOException {
-    try (StorageTx tx = getStorage().openTx()) {
-      OrientVertex bucket = tx.getBucket();
-      OrientVertex component = tx.findComponentWithProperty(P_PATH, coordinates.getPath(), bucket);
-
-      if (component == null) {
-        log.debug("Updating lastUpdated time for nonexistent maven component {}", coordinates.getPath());
-        return;
-      }
-
-      OrientVertex asset = getAsset(component);
-
-      if (lastUpdated != null) {
-        asset.setProperty(P_LAST_UPDATED, new Date(lastUpdated.getMillis()));
-      }
-
-      tx.commit();
-    }
-  }
-
   private StorageFacet getStorage() {
     return getRepository().facet(StorageFacet.class);
   }
 
-  private BlobRef getBlobRef(final String path, final OrientVertex asset) {
+  /**
+   * Creates a content out of a Blob, for content originating from Blobs.
+   */
+  private BlobRef getBlobRef(final Coordinates coordinates, final OrientVertex asset) {
     String blobRefStr = asset.getProperty(P_BLOB_REF);
-    checkState(blobRefStr != null, "asset of component at path %s has missing blob reference", path);
+    checkState(blobRefStr != null, "asset of component at path %s has missing blob reference", coordinates.getPath());
     return BlobRef.parse(blobRefStr);
-  }
-
-  private OrientVertex getAsset(OrientVertex component) {
-    List<Vertex> vertices = Lists.newArrayList(component.getVertices(Direction.IN, E_PART_OF_COMPONENT));
-    checkState(!vertices.isEmpty());
-    return (OrientVertex) vertices.get(0);
-  }
-
-  // TODO: Consider a top-level indexed property (e.g. "locator") to make these common lookups fast
-  private OrientVertex getComponent(StorageTx tx, ArtifactCoordinates coordinates, OrientVertex bucket) {
-    String property = String.format("%s.%s.%s", P_ATTRIBUTES, getRepository().getFormat().getValue(), P_PATH);
-    return tx.findComponentWithProperty(property, coordinates.getPath(), bucket);
   }
 
   private Content marshall(final OrientVertex asset, final Blob blob) {
@@ -272,6 +339,40 @@ public class ArtifactContentsFacetImpl
       @Override
       public InputStream openInputStream() {
         return blob.getInputStream();
+      }
+
+      @Override
+      public DateTime getLastUpdated() {
+        return lastUpdated;
+      }
+    };
+  }
+
+  /**
+   * Creates a content out of String, for "subordinate" contents like hashCodes.
+   */
+  private Content marshall(final OrientVertex asset, final String payload) {
+    final String contentType = asset.getProperty(P_CONTENT_TYPE);
+
+    final Date date = asset.getProperty(P_LAST_UPDATED);
+    final DateTime lastUpdated = date == null ? null : new DateTime(date.getTime());
+    final byte[] bytes = payload.getBytes(Charsets.UTF_8);
+
+    return new Content()
+    {
+      @Override
+      public String getContentType() {
+        return contentType;
+      }
+
+      @Override
+      public long getSize() {
+        return bytes.length;
+      }
+
+      @Override
+      public InputStream openInputStream() {
+        return new ByteArrayInputStream(bytes);
       }
 
       @Override
