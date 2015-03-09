@@ -41,6 +41,8 @@ import org.sonatype.nexus.repository.util.NestedAttributesMap;
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.google.common.hash.HashCode;
+import com.google.common.io.ByteStreams;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
@@ -61,6 +63,8 @@ public class MavenContentsFacetImpl
     extends FacetSupport
     implements MavenContentsFacet
 {
+  // component properties
+
   private static final String P_GROUP_ID = "groupId";
 
   private static final String P_ARTIFACT_ID = "artifactId";
@@ -75,7 +79,9 @@ public class MavenContentsFacetImpl
 
   private static final String P_SNAPSHOT = "snapshot"; // boolean
 
-  private static final String P_EXT_HASHCODES = "exthashcodes"; // child map keyed by HashCode.ext
+  // asset properties
+
+  private static final String P_EXT_HASHCODES = "exthashcodes"; // child map keyed by HashType.ext -- hashes got externally
 
   private final static List<HashAlgorithm> hashAlgorithms = Lists.newArrayList(MD5, SHA1);
 
@@ -98,7 +104,7 @@ public class MavenContentsFacetImpl
       }
 
       final OrientVertex asset = getArtifactAsset(component);
-      if (!coordinates.isHash()) {
+      if (coordinates.getHashType() == null) {
         final BlobRef blobRef = getBlobRef(coordinates, asset);
         final Blob blob = tx.getBlob(blobRef);
         checkState(blob != null, "asset of component with at path %s refers to missing blob %s", coordinates.getPath(),
@@ -106,13 +112,11 @@ public class MavenContentsFacetImpl
         return marshall(asset, blob);
       }
       else {
-        final NestedAttributesMap extHashes =
-            tx.getAttributes(asset).child(getRepository().getFormat().getValue()).child(P_EXT_HASHCODES);
-        final String extHash = extHashes.get(coordinates.getHashType().getExt(), String.class);
+        final HashCode extHash = getExtHashCode(tx.getAttributes(asset), coordinates.getHashType().getHashAlgorithm());
         if (extHash == null) {
           return null; // unknown external hash
         }
-        return marshall(asset, extHash);
+        return marshall(asset, extHash.toString());
       }
     }
   }
@@ -138,9 +142,7 @@ public class MavenContentsFacetImpl
         component.setProperty(StorageFacet.P_NAME, coordinates.getArtifactId());
         component.setProperty(StorageFacet.P_VERSION, coordinates.getBaseVersion());
 
-        final NestedAttributesMap attributes = tx.getAttributes(component)
-            .child(getRepository().getFormat().getValue());
-
+        final NestedAttributesMap attributes = getFormatAttributes(tx.getAttributes(component));
         attributes.set(StorageFacet.P_PATH, coordinates.getPath());
         attributes.set(P_GROUP_ID, coordinates.getGroupId());
         attributes.set(P_ARTIFACT_ID, coordinates.getArtifactId());
@@ -198,6 +200,11 @@ public class MavenContentsFacetImpl
         // does not exists?
         // TODO: how to reject this now with 400 Bad Request?
       }
+      final OrientVertex asset = getArtifactAsset(component);
+
+      // TODO: sanity check for size!
+      final HashCode hashCode = HashCode.fromBytes(ByteStreams.toByteArray(content.openInputStream()));
+      putExtHashCode(tx.getAttributes(asset), coordinates.getHashType().getHashAlgorithm(), hashCode);
 
       // TODO: grab NX internal hash it content on blob, compare it
       // TODO: if OK, store it/update EXT child map with hash value (as "externallly" provided)
@@ -249,22 +256,19 @@ public class MavenContentsFacetImpl
         return null;
       }
 
-      if (!coordinates.isHash()) {
+      if (coordinates.getHashType() == null) {
         final BlobRef blobRef = getBlobRef(coordinates, asset);
         final Blob blob = tx.getBlob(blobRef);
         checkState(blob != null, "asset of component with at path %s refers to missing blob %s", coordinates.getPath(),
             blobRef);
-
         return marshall(asset, blob);
       }
       else {
-        final NestedAttributesMap extHashes =
-            tx.getAttributes(asset).child(getRepository().getFormat().getValue()).child(P_EXT_HASHCODES);
-        final String extHash = extHashes.get(coordinates.getHashType().getExt(), String.class);
+        final HashCode extHash = getExtHashCode(tx.getAttributes(asset), coordinates.getHashType().getHashAlgorithm());
         if (extHash == null) {
           return null; // unknown external hash
         }
-        return marshall(asset, extHash);
+        return marshall(asset, extHash.toString());
       }
     }
   }
@@ -324,9 +328,13 @@ public class MavenContentsFacetImpl
     try (StorageTx tx = getStorage().openTx()) {
       OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
       if (asset == null) {
-        // illiegal
+        // illegal
       }
 
+
+      // TODO: sanity check for size!
+      final HashCode hashCode = HashCode.fromBytes(ByteStreams.toByteArray(content.openInputStream()));
+      putExtHashCode(tx.getAttributes(asset), coordinates.getHashType().getHashAlgorithm(), hashCode);
 
       tx.commit();
     }
@@ -345,6 +353,30 @@ public class MavenContentsFacetImpl
       tx.commit();
       return true;
     }
+  }
+
+  private NestedAttributesMap getFormatAttributes(final NestedAttributesMap attributes) {
+    return attributes.child(getRepository().getFormat().getValue());
+  }
+
+  @Nullable
+  private HashCode getExtHashCode(final NestedAttributesMap attributes,
+                                  final HashAlgorithm hashAlgorithm)
+  {
+    final NestedAttributesMap hashes = getFormatAttributes(attributes).child(P_EXT_HASHCODES);
+    final String hashCodeString = hashes.get(hashAlgorithm.name(), String.class);
+    if (hashCodeString == null) {
+      return null;
+    }
+    return HashCode.fromString(hashCodeString);
+  }
+
+  private void putExtHashCode(final NestedAttributesMap attributes,
+                              final HashAlgorithm hashAlgorithm,
+                              final HashCode hashCode)
+  {
+    final NestedAttributesMap hashes = getFormatAttributes(attributes).child(P_EXT_HASHCODES);
+    hashes.set(hashAlgorithm.name(), hashCode.toString());
   }
 
   /**
