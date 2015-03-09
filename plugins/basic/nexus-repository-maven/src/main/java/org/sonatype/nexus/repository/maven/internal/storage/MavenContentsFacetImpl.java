@@ -36,6 +36,7 @@ import org.sonatype.nexus.repository.maven.internal.Content;
 import org.sonatype.nexus.repository.maven.internal.Coordinates;
 import org.sonatype.nexus.repository.storage.StorageFacet;
 import org.sonatype.nexus.repository.storage.StorageTx;
+import org.sonatype.nexus.repository.util.NestedAttributesMap;
 
 import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableMap;
@@ -49,10 +50,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.sonatype.nexus.common.hash.HashAlgorithm.MD5;
 import static org.sonatype.nexus.common.hash.HashAlgorithm.SHA1;
-import static org.sonatype.nexus.repository.storage.StorageFacet.*;
 
 /**
- * A {@link MetadataContentsFacet} that persists Maven metadata as assets to a {@link StorageFacet}.
+ * A {@link MavenContentsFacet} that persists Maven metadata as assets to a {@link StorageFacet}.
  *
  * @since 3.0
  */
@@ -61,6 +61,28 @@ public class MavenContentsFacetImpl
     extends FacetSupport
     implements MavenContentsFacet
 {
+  private static final String P_GROUP_ID = "groupId";
+
+  private static final String P_ARTIFACT_ID = "artifactId";
+
+  private static final String P_VERSION = "version";
+
+  private static final String P_BASE_VERSION = "baseVersion";
+
+  private static final String P_CLASSIFIER = "classifier";
+
+  private static final String P_EXTENSION = "extension";
+
+  private static final String P_SNAPSHOT = "snapshot";
+
+  private static final String P_SHA1_HASHCODE = "sha1";
+
+  private static final String P_MD5_HASHCODE = "md5";
+
+  private static final String P_EXT_SHA1_HASHCODE = "extsha1";
+
+  private static final String P_EXT_MD5_HASHCODE = "extmd5";
+
   private final static List<HashAlgorithm> hashAlgorithms = Lists.newArrayList(MD5, SHA1);
 
   private final MimeSupport mimeSupport;
@@ -82,7 +104,7 @@ public class MavenContentsFacetImpl
       }
 
       final OrientVertex asset = getArtifactAsset(component);
-      if (!coordinates.isSubordinate()) {
+      if (!coordinates.isHash()) {
         final BlobRef blobRef = getBlobRef(coordinates, asset);
         final Blob blob = tx.getBlob(blobRef);
         checkState(blob != null, "asset of component with at path %s refers to missing blob %s", coordinates.getPath(),
@@ -109,31 +131,28 @@ public class MavenContentsFacetImpl
         component = tx.createComponent(bucket);
 
         // Set normalized properties: format, group, and name
-        component.setProperty(P_FORMAT, getRepository().getFormat().getValue()); // M1 or M2!!!
-        final ArtifactCoordinates artifactCoordinates = (ArtifactCoordinates) coordinates;
-        component.setProperty(P_GROUP, artifactCoordinates.getGroupId());
-        component.setProperty(P_NAME, artifactCoordinates.getArtifactId());
-        component.setProperty(P_VERSION, artifactCoordinates.getBaseVersion());
+        component.setProperty(StorageFacet.P_FORMAT, getRepository().getFormat().getValue()); // M1 or M2!!!
+        component.setProperty(StorageFacet.P_GROUP, coordinates.getGroupId());
+        component.setProperty(StorageFacet.P_NAME, coordinates.getArtifactId());
+        component.setProperty(StorageFacet.P_VERSION, coordinates.getBaseVersion());
 
-        // Set attributes map to contain "raw" format-specific metadata (in this case, path)
-        tx.getAttributes(component).child(getRepository().getFormat().getValue()).set(P_PATH, coordinates.getPath());
-        tx.getAttributes(component).child(getRepository().getFormat().getValue())
-            .set("groupId", artifactCoordinates.getGroupId());
-        tx.getAttributes(component).child(getRepository().getFormat().getValue())
-            .set("artifactId", artifactCoordinates.getArtifactId());
-        tx.getAttributes(component).child(getRepository().getFormat().getValue())
-            .set("version", artifactCoordinates.getVersion());
-        tx.getAttributes(component).child(getRepository().getFormat().getValue())
-            .set("baseVersion", artifactCoordinates.getBaseVersion());
-        tx.getAttributes(component).child(getRepository().getFormat().getValue())
-            .set("extension", artifactCoordinates.getExtension());
-        if (artifactCoordinates.getClassifier() != null) {
+        final NestedAttributesMap attributes = tx.getAttributes(component)
+            .child(getRepository().getFormat().getValue());
+
+        attributes.set(StorageFacet.P_PATH, coordinates.getPath());
+        attributes.set(P_GROUP_ID, coordinates.getGroupId());
+        attributes.set(P_ARTIFACT_ID, coordinates.getArtifactId());
+        attributes.set(P_VERSION, coordinates.getVersion());
+        attributes.set(P_BASE_VERSION, coordinates.getBaseVersion());
+        attributes.set(P_EXTENSION, coordinates.getExtension());
+        attributes.set(P_SNAPSHOT, coordinates.isSnapshot());
+        if (coordinates.getClassifier() != null) {
           tx.getAttributes(component).child(getRepository().getFormat().getValue())
-              .set("classifier", artifactCoordinates.getClassifier());
+              .set(P_CLASSIFIER, coordinates.getClassifier());
         }
 
         asset = tx.createAsset(bucket);
-        asset.addEdge(E_PART_OF_COMPONENT, component);
+        asset.addEdge(StorageFacet.E_PART_OF_COMPONENT, component);
       }
       else {
         // UPDATE
@@ -146,6 +165,7 @@ public class MavenContentsFacetImpl
           BlobStore.CREATED_BY_HEADER, "unknown"
       );
 
+      // TODO: hash the content for SHA1 and MD5?
       try (TempStreamSupplier supplier = new TempStreamSupplier(content.openInputStream())) {
         try (InputStream is1 = supplier.get(); InputStream is2 = supplier.get()) {
           tx.setBlob(is1, headers, asset, hashAlgorithms,
@@ -155,7 +175,7 @@ public class MavenContentsFacetImpl
 
       final DateTime lastUpdated = content.getLastUpdated();
       if (lastUpdated != null) {
-        asset.setProperty(P_LAST_UPDATED, new Date(lastUpdated.getMillis()));
+        asset.setProperty(StorageFacet.P_LAST_UPDATED, new Date(lastUpdated.getMillis()));
       }
 
       tx.commit();
@@ -183,12 +203,12 @@ public class MavenContentsFacetImpl
 
   // TODO: Consider a top-level indexed property (e.g. "locator") to make these common lookups fast
   private OrientVertex getArtifactComponent(StorageTx tx, ArtifactCoordinates coordinates, OrientVertex bucket) {
-    String property = String.format("%s.%s.%s", P_ATTRIBUTES, getRepository().getFormat().getValue(), P_PATH);
+    String property = String.format("%s.%s.%s", StorageFacet.P_ATTRIBUTES, getRepository().getFormat().getValue(), StorageFacet.P_PATH);
     return tx.findComponentWithProperty(property, coordinates.getPath(), bucket);
   }
 
   private OrientVertex getArtifactAsset(OrientVertex component) {
-    List<Vertex> vertices = Lists.newArrayList(component.getVertices(Direction.IN, E_PART_OF_COMPONENT));
+    List<Vertex> vertices = Lists.newArrayList(component.getVertices(Direction.IN, StorageFacet.E_PART_OF_COMPONENT));
     checkState(!vertices.isEmpty());
     return (OrientVertex) vertices.get(0);
   }
@@ -197,12 +217,12 @@ public class MavenContentsFacetImpl
   @Override
   public Content getMetadata(final Coordinates coordinates) {
     try (StorageTx tx = getStorage().openTx()) {
-      OrientVertex asset = tx.findAssetWithProperty(P_PATH, coordinates.getPath(), tx.getBucket());
+      OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
       if (asset == null) {
         return null;
       }
 
-      if (!coordinates.isSubordinate()) {
+      if (!coordinates.isHash()) {
         final BlobRef blobRef = getBlobRef(coordinates, asset);
         final Blob blob = tx.getBlob(blobRef);
         checkState(blob != null, "asset of component with at path %s refers to missing blob %s", coordinates.getPath(),
@@ -222,16 +242,16 @@ public class MavenContentsFacetImpl
       throws IOException, InvalidContentException
   {
     try (StorageTx tx = getStorage().openTx()) {
-      OrientVertex asset = tx.findAssetWithProperty(P_PATH, coordinates.getPath(), tx.getBucket());
+      OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
       if (asset == null) {
         // CREATE
         asset = tx.createAsset(tx.getBucket());
 
-        asset.setProperty(P_FORMAT, getRepository().getFormat().getValue());
-        asset.setProperty(P_NAME, coordinates.getPath());
+        asset.setProperty(StorageFacet.P_FORMAT, getRepository().getFormat().getValue());
+        asset.setProperty(StorageFacet.P_NAME, coordinates.getPath());
 
         // "key", see getArtifactAsset?
-        tx.getAttributes(asset).child(getRepository().getFormat().getValue()).set(P_PATH, coordinates.getPath());
+        tx.getAttributes(asset).child(getRepository().getFormat().getValue()).set(StorageFacet.P_PATH, coordinates.getPath());
       }
 
       // TODO: Figure out created-by header
@@ -249,8 +269,8 @@ public class MavenContentsFacetImpl
 
       final DateTime lastUpdated = content.getLastUpdated();
       if (lastUpdated != null) {
-        asset.setProperty(P_LAST_UPDATED, new Date(lastUpdated.getMillis()));
-        asset.setProperty(P_PATH, coordinates.getPath());
+        asset.setProperty(StorageFacet.P_LAST_UPDATED, new Date(lastUpdated.getMillis()));
+        asset.setProperty(StorageFacet.P_PATH, coordinates.getPath());
       }
 
       tx.commit();
@@ -260,7 +280,7 @@ public class MavenContentsFacetImpl
   @Override
   public boolean deleteMetadata(final Coordinates coordinates) throws IOException {
     try (StorageTx tx = getStorage().openTx()) {
-      OrientVertex asset = tx.findAssetWithProperty(P_PATH, coordinates.getPath(), tx.getBucket());
+      OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
       if (asset == null) {
         return false;
       }
@@ -313,15 +333,15 @@ public class MavenContentsFacetImpl
    * Creates a content out of a Blob, for content originating from Blobs.
    */
   private BlobRef getBlobRef(final Coordinates coordinates, final OrientVertex asset) {
-    String blobRefStr = asset.getProperty(P_BLOB_REF);
+    String blobRefStr = asset.getProperty(StorageFacet.P_BLOB_REF);
     checkState(blobRefStr != null, "asset of component at path %s has missing blob reference", coordinates.getPath());
     return BlobRef.parse(blobRefStr);
   }
 
   private Content marshall(final OrientVertex asset, final Blob blob) {
-    final String contentType = asset.getProperty(P_CONTENT_TYPE);
+    final String contentType = asset.getProperty(StorageFacet.P_CONTENT_TYPE);
 
-    final Date date = asset.getProperty(P_LAST_UPDATED);
+    final Date date = asset.getProperty(StorageFacet.P_LAST_UPDATED);
     final DateTime lastUpdated = date == null ? null : new DateTime(date.getTime());
 
     return new Content()
@@ -352,9 +372,9 @@ public class MavenContentsFacetImpl
    * Creates a content out of String, for "subordinate" contents like hashCodes.
    */
   private Content marshall(final OrientVertex asset, final String payload) {
-    final String contentType = asset.getProperty(P_CONTENT_TYPE);
+    final String contentType = asset.getProperty(StorageFacet.P_CONTENT_TYPE);
 
-    final Date date = asset.getProperty(P_LAST_UPDATED);
+    final Date date = asset.getProperty(StorageFacet.P_LAST_UPDATED);
     final DateTime lastUpdated = date == null ? null : new DateTime(date.getTime());
     final byte[] bytes = payload.getBytes(Charsets.UTF_8);
 
