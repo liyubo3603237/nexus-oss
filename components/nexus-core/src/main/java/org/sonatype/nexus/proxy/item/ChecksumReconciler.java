@@ -25,7 +25,6 @@ import org.sonatype.nexus.proxy.ItemNotFoundException;
 import org.sonatype.nexus.proxy.ResourceStoreRequest;
 import org.sonatype.nexus.proxy.access.Action;
 import org.sonatype.nexus.proxy.attributes.inspectors.DigestCalculatingInspector;
-import org.sonatype.nexus.proxy.maven.ChecksumContentValidator;
 import org.sonatype.nexus.proxy.maven.MUtils;
 import org.sonatype.nexus.proxy.repository.Repository;
 import org.sonatype.nexus.proxy.storage.local.fs.DefaultFSLocalRepositoryStorage;
@@ -39,6 +38,13 @@ import org.sonatype.sisu.goodies.common.ComponentSupport;
 
 import com.google.common.io.ByteStreams;
 import org.apache.commons.lang.StringUtils;
+
+import static org.sonatype.nexus.proxy.attributes.inspectors.DigestCalculatingInspector.DIGEST_MD5_KEY;
+import static org.sonatype.nexus.proxy.attributes.inspectors.DigestCalculatingInspector.DIGEST_SHA1_KEY;
+import static org.sonatype.nexus.proxy.maven.ChecksumContentValidator.ATTR_REMOTE_MD5;
+import static org.sonatype.nexus.proxy.maven.ChecksumContentValidator.ATTR_REMOTE_SHA1;
+import static org.sonatype.nexus.proxy.maven.ChecksumContentValidator.SUFFIX_MD5;
+import static org.sonatype.nexus.proxy.maven.ChecksumContentValidator.SUFFIX_SHA1;
 
 /**
  * Reconciles any item attribute checksums affected by NEXUS-8178.
@@ -114,8 +120,8 @@ public class ChecksumReconciler
    */
   void reconcileItemChecksum(final Repository repo, final StorageFileItem item) throws Exception {
 
-    final String localSHA1 = item.getRepositoryItemAttributes().get(DigestCalculatingInspector.DIGEST_SHA1_KEY);
-    final String remoteSHA1 = item.getRepositoryItemAttributes().get(ChecksumContentValidator.ATTR_REMOTE_SHA1);
+    final String localSHA1 = item.getRepositoryItemAttributes().get(DIGEST_SHA1_KEY);
+    final String remoteSHA1 = item.getRepositoryItemAttributes().get(ATTR_REMOTE_SHA1);
 
     if (localSHA1 != null || remoteSHA1 != null) {
 
@@ -147,8 +153,8 @@ public class ChecksumReconciler
           final RepositoryItemUid uid = item.getRepositoryItemUid();
           uid.getLock().lock(Action.update);
           try {
-            item.getRepositoryItemAttributes().remove(ChecksumContentValidator.ATTR_REMOTE_SHA1);
-            item.getRepositoryItemAttributes().remove(ChecksumContentValidator.ATTR_REMOTE_MD5);
+            item.getRepositoryItemAttributes().remove(ATTR_REMOTE_SHA1);
+            item.getRepositoryItemAttributes().remove(ATTR_REMOTE_MD5);
             digestCalculatingInspector.processStorageItem(item);
             repo.getAttributesHandler().storeAttributes(item);
           }
@@ -157,13 +163,13 @@ public class ChecksumReconciler
           }
         }
 
-        reconcileChecksumFile(repo, itemPath + ".sha1", affectedSHA1,
-            item.getRepositoryItemAttributes().get(DigestCalculatingInspector.DIGEST_SHA1_KEY));
+        reconcileChecksumFile(repo, itemPath + SUFFIX_SHA1, affectedSHA1,
+            item.getRepositoryItemAttributes().get(DIGEST_SHA1_KEY));
 
         final String affectedMD5 = DigesterUtils.getDigestAsString(md5.digest());
 
-        reconcileChecksumFile(repo, itemPath + ".md5", affectedMD5,
-            item.getRepositoryItemAttributes().get(DigestCalculatingInspector.DIGEST_MD5_KEY));
+        reconcileChecksumFile(repo, itemPath + SUFFIX_MD5, affectedMD5,
+            item.getRepositoryItemAttributes().get(DIGEST_MD5_KEY));
       }
     }
   }
@@ -188,7 +194,7 @@ public class ChecksumReconciler
    * Should we attempt checksum reconciliation for the given path?
    */
   private boolean shouldAttemptReconciliation(final String itemPath) {
-    if (itemPath == null || itemPath.endsWith(".sha1") || itemPath.endsWith(".md5")) {
+    if (itemPath == null || itemPath.endsWith(SUFFIX_SHA1) || itemPath.endsWith(SUFFIX_MD5)) {
       return false; // ignore associated checksum files, we'll fix them when we process the main item
     }
     final File attributesFile = new File(attributesBaseDir, StringUtils.strip(itemPath, "/"));
