@@ -12,6 +12,7 @@
  */
 package org.sonatype.nexus.proxy.item;
 
+import java.io.File;
 import java.io.InputStream;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
@@ -26,6 +27,7 @@ import org.sonatype.nexus.proxy.access.Action;
 import org.sonatype.nexus.proxy.attributes.inspectors.DigestCalculatingInspector;
 import org.sonatype.nexus.proxy.maven.MUtils;
 import org.sonatype.nexus.proxy.repository.Repository;
+import org.sonatype.nexus.proxy.storage.local.fs.DefaultFSLocalRepositoryStorage;
 import org.sonatype.nexus.proxy.walker.AbstractFileWalkerProcessor;
 import org.sonatype.nexus.proxy.walker.DefaultWalkerContext;
 import org.sonatype.nexus.proxy.walker.Walker;
@@ -35,6 +37,7 @@ import org.sonatype.nexus.util.DigesterUtils;
 import org.sonatype.sisu.goodies.common.ComponentSupport;
 
 import com.google.common.io.ByteStreams;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * Reconciles any item attribute checksums affected by NEXUS-8178.
@@ -45,6 +48,8 @@ import com.google.common.io.ByteStreams;
 public class ChecksumReconciler
     extends ComponentSupport
 {
+  private static final long MILLIS_IN_A_DAY = 86400000L;
+
   private final Walker walker;
 
   private final DigestCalculatingInspector digestCalculatingInspector;
@@ -52,6 +57,10 @@ public class ChecksumReconciler
   private final MessageDigest sha1;
 
   private final MessageDigest md5;
+
+  private File attributesBaseDir;
+
+  private long modifiedThreshold;
 
   @Inject
   public ChecksumReconciler(final Walker walker, final DigestCalculatingInspector digestCalculatingInspector)
@@ -68,10 +77,18 @@ public class ChecksumReconciler
   /**
    * Walks the selected sub-tree in the given repository attempting to reconcile their item attribute checksums.
    */
-  public void reconcileChecksums(final Repository repo, final ResourceStoreRequest request) {
+  public void reconcileChecksums(final Repository repo, final ResourceStoreRequest request, final int sinceDays) {
     final WalkerContext context = new DefaultWalkerContext(repo, request);
 
     final String repositoryId = repo.getId();
+
+    attributesBaseDir = getAttributesBaseDir(repo);
+    modifiedThreshold = getModifiedThreshold(sinceDays);
+
+    if (attributesBaseDir == null) {
+      return; // no point walking repository with no local storage
+    }
+
     context.getProcessors().add(new AbstractFileWalkerProcessor()
     {
       @Override
@@ -97,17 +114,19 @@ public class ChecksumReconciler
    * Checks the checksum cached in the item's attributes to see if it needs reconciling with the stored content.
    */
   void reconcileItemChecksum(final Repository repo, final StorageFileItem item) throws Exception {
-    final String itemPath = item.getPath();
-    if (!itemPath.endsWith(".sha1") && !itemPath.endsWith(".md5")) {
-      final String attributeSHA1 = item.getRepositoryItemAttributes().get(DigestCalculatingInspector.DIGEST_SHA1_KEY);
-      if (attributeSHA1 != null) {
+
+    final String attributeSHA1 = item.getRepositoryItemAttributes().get(DigestCalculatingInspector.DIGEST_SHA1_KEY);
+    if (attributeSHA1 != null) {
+
+      final String itemPath = item.getPath();
+      if (shouldAttemptReconciliation(itemPath)) {
 
         sha1.reset();
         md5.reset();
 
         // look for checksums affected by the link persister pre-fetching the first 8 bytes (see NEXUS-8178)
-        try (final InputStream is = new DigestInputStream(new DigestInputStream( //
-            item.getContentLocator().getContent(), sha1), md5)) {
+        try (final InputStream is = new DigestInputStream(new DigestInputStream(item.getContentLocator().getContent(),
+            sha1), md5)) {
 
           final byte[] buf = new byte[8];
           ByteStreams.read(is, buf, 0, 8);
@@ -141,6 +160,43 @@ public class ChecksumReconciler
             item.getRepositoryItemAttributes().get(DigestCalculatingInspector.DIGEST_MD5_KEY));
       }
     }
+  }
+
+  /**
+   * Determines the base directory of local attribute storage.
+   */
+  private File getAttributesBaseDir(final Repository repo) {
+    try {
+      if (repo.getLocalStorage() instanceof DefaultFSLocalRepositoryStorage) {
+        final File baseDir = ((DefaultFSLocalRepositoryStorage) repo.getLocalStorage()).getBaseDir(repo, null);
+        return new File(new File(baseDir, ".nexus"), "attributes");
+      }
+    }
+    catch (final Exception e) {
+      log.warn("Problem finding local storage for {}", repo, e);
+    }
+    return null;
+  }
+
+  /**
+   * Calculates the lastModified threshold for attribute files.
+   */
+  private static long getModifiedThreshold(final long modifiedSinceDays) {
+    if (modifiedSinceDays >= 0 && modifiedSinceDays < (System.currentTimeMillis() / MILLIS_IN_A_DAY)) {
+      return System.currentTimeMillis() - (MILLIS_IN_A_DAY * modifiedSinceDays);
+    }
+    return 0;
+  }
+
+  /**
+   * Should we attempt checksum reconciliation for the given path?
+   */
+  private boolean shouldAttemptReconciliation(final String itemPath) {
+    if (itemPath == null || itemPath.endsWith(".sha1") || itemPath.endsWith(".md5")) {
+      return false; // ignore associated checksum files, we'll fix them when we process the main item
+    }
+    final File attributesFile = new File(attributesBaseDir, StringUtils.strip(itemPath, "/"));
+    return attributesFile.lastModified() >= modifiedThreshold;
   }
 
   /**
