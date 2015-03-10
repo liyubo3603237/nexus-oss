@@ -28,6 +28,7 @@ import org.sonatype.nexus.repository.maven.internal.MavenArtifactMatcher
 import org.sonatype.nexus.repository.maven.internal.MavenMetadataMatcher
 import org.sonatype.nexus.repository.maven.internal.MetadataMergeHandler
 import org.sonatype.nexus.repository.security.SecurityHandler
+import org.sonatype.nexus.repository.types.GroupType
 import org.sonatype.nexus.repository.types.HostedType
 import org.sonatype.nexus.repository.view.ConfigurableViewFacet
 import org.sonatype.nexus.repository.view.Route
@@ -71,7 +72,7 @@ class Maven2GroupRecipe
   MetadataMergeHandler metadataMergeHandler
 
   @Inject
-  Maven2GroupRecipe(@Named(HostedType.NAME) final Type type,
+  Maven2GroupRecipe(@Named(GroupType.NAME) final Type type,
                     @Named(Maven2Format.NAME) final Format format)
   {
     super(type, format)
