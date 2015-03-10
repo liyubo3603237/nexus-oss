@@ -14,7 +14,6 @@ package org.sonatype.nexus.repository.maven.internal.storage;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
@@ -34,6 +33,8 @@ import org.sonatype.nexus.repository.FacetSupport;
 import org.sonatype.nexus.repository.content.InvalidContentException;
 import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates;
 import org.sonatype.nexus.repository.maven.internal.Coordinates;
+import org.sonatype.nexus.repository.maven.internal.Coordinates.HashType;
+import org.sonatype.nexus.repository.maven.internal.MavenChecksumReader;
 import org.sonatype.nexus.repository.storage.StorageFacet;
 import org.sonatype.nexus.repository.storage.StorageTx;
 import org.sonatype.nexus.repository.util.NestedAttributesMap;
@@ -45,7 +46,6 @@ import com.google.common.base.Charsets;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.google.common.io.CharStreams;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
@@ -224,22 +224,7 @@ public class MavenContentsFacetImpl
         throw new InvalidContentException("No asset for hash: " + coordinates.getPath());
       }
 
-      // TODO: sort hash parsing, this might be text produced by some tool like sha1sum is!
-      // TODO: sanity check for size!
-      final String artifactHash = CharStreams
-          .toString(new InputStreamReader(content.openInputStream(), Charsets.UTF_8));
-
-      final String existingHash = tx.getAttributes(asset).child(StorageFacet.P_CHECKSUM)
-          .get(coordinates.getHashType().getHashAlgorithm().name(), String.class);
-      checkArgument(existingHash != null);
-
-      if (!Objects.equals(artifactHash, existingHash)) {
-        tx.rollback();
-        throw new InvalidContentException(
-            "Invalid hash for " + coordinates.getPath() + ": expected " + existingHash + " got " + artifactHash);
-      }
-
-      putExtHashCode(tx, asset, coordinates.getHashType(), artifactHash);
+      setAssetHashCode(tx, asset, coordinates, content);
 
       tx.commit();
     }
@@ -413,22 +398,7 @@ public class MavenContentsFacetImpl
         throw new InvalidContentException("No asset for hash: " + coordinates.getPath());
       }
 
-      // TODO: sort hash parsing, this might be text produced by some tool like sha1sum is!
-      // TODO: sanity check for size!
-      final String artifactHash = CharStreams
-          .toString(new InputStreamReader(content.openInputStream(), Charsets.UTF_8));
-
-      final String existingHash = tx.getAttributes(asset).child(StorageFacet.P_CHECKSUM)
-          .get(coordinates.getHashType().getHashAlgorithm().name(), String.class);
-      checkArgument(existingHash != null);
-
-      if (!Objects.equals(artifactHash, existingHash)) {
-        tx.rollback();
-        throw new InvalidContentException(
-            "Invalid hash for " + coordinates.getPath() + ": expected " + existingHash + " got " + artifactHash);
-      }
-
-      putExtHashCode(tx, asset, coordinates.getHashType(), artifactHash);
+      setAssetHashCode(tx, asset, coordinates, content);
 
       tx.commit();
     }
@@ -452,6 +422,36 @@ public class MavenContentsFacetImpl
   private String getMetadataKey(final Coordinates coordinates) {
     // TODO: maybe sha1() the resulting string?
     return coordinates.getPath();
+  }
+
+  /**
+   * Assumes payload is a hash file, parses it like that. Takes existing -- same type -- hash from asset attributes and
+   * compares the two, throws if not. Finally, if all ok, stores the supplied hash in format specific attributes of the
+   * asset, see {@link #putExtHashCode(StorageTx, OrientVertex, HashType, String)}.
+   */
+  private void setAssetHashCode(final StorageTx tx, final OrientVertex asset, final Coordinates coordinates,
+                                final Payload content)
+      throws IOException, InvalidContentException
+  {
+    // TODO: sort hash parsing, this might be text produced by some tool like sha1sum is!
+    // TODO: sanity check for size!
+    final String artifactHash = MavenChecksumReader.readChecksum(content);
+    if (artifactHash == null) {
+      // we could not interpret the payload
+      throw new InvalidContentException("Unrecognized checksum for path: " + coordinates.getPath());
+    }
+    final String existingHash = tx.getAttributes(asset).child(StorageFacet.P_CHECKSUM)
+        .get(coordinates.getHashType().getHashAlgorithm().name(), String.class);
+    checkArgument(existingHash != null);
+
+    if (!Objects.equals(artifactHash, existingHash)) {
+      tx.rollback();
+      throw new InvalidContentException(
+          "Invalid hash for " + coordinates.getPath() + ": expected '" + existingHash + "' got '" + artifactHash +
+              "'");
+    }
+
+    putExtHashCode(tx, asset, coordinates.getHashType(), artifactHash);
   }
 
   /**
