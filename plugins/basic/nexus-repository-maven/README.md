@@ -20,5 +20,9 @@
   },
   "maven" : {
     "versionPolicy" : "release"
+  },
+  "proxy" : {
+    "remoteUrl" : "http://repo1.maven.org/maven2/",
+    "artifactMaxAge" : 3600
   }
 }
