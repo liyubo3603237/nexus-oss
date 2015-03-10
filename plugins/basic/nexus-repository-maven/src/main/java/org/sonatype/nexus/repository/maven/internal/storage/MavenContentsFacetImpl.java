@@ -344,7 +344,7 @@ public class MavenContentsFacetImpl
   @Override
   public Payload getMetadata(final Coordinates coordinates) {
     try (StorageTx tx = getStorage().openTx()) {
-      OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
+      OrientVertex asset = findMetadataAsset(tx, getMetadataKey(coordinates), tx.getBucket());
       if (asset == null) {
         return null;
       }
@@ -374,7 +374,7 @@ public class MavenContentsFacetImpl
       putMetadataHash(coordinates, content);
     }
     try (StorageTx tx = getStorage().openTx()) {
-      OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
+      OrientVertex asset = findMetadataAsset(tx, getMetadataKey(coordinates), tx.getBucket());
       if (asset == null) {
         asset = tx.createAsset(tx.getBucket());
 
@@ -408,7 +408,7 @@ public class MavenContentsFacetImpl
       throws IOException, InvalidContentException
   {
     try (StorageTx tx = getStorage().openTx()) {
-      OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
+      OrientVertex asset = findMetadataAsset(tx, getMetadataKey(coordinates), tx.getBucket());
       if (asset == null) {
         throw new InvalidContentException("No asset for hash: " + coordinates.getPath());
       }
@@ -437,7 +437,7 @@ public class MavenContentsFacetImpl
   @Override
   public boolean deleteMetadata(final Coordinates coordinates) throws IOException {
     try (StorageTx tx = getStorage().openTx()) {
-      OrientVertex asset = tx.findAssetWithProperty(StorageFacet.P_PATH, coordinates.getPath(), tx.getBucket());
+      OrientVertex asset = findMetadataAsset(tx, getMetadataKey(coordinates), tx.getBucket());
       if (asset == null) {
         return false;
       }
@@ -447,6 +447,24 @@ public class MavenContentsFacetImpl
       tx.commit();
       return true;
     }
+  }
+
+  private String getMetadataKey(final Coordinates coordinates) {
+    // TODO: maybe sha1() the resulting string?
+    return coordinates.getPath();
+  }
+
+  /**
+   * Finds metadata by key.
+   */
+  @Nullable
+  private OrientVertex findMetadataAsset(final StorageTx tx,
+                                         final String metadataKey,
+                                         final OrientVertex bucket)
+  {
+    final String metadataKeyName =
+        StorageFacet.P_ATTRIBUTES + "." + getRepository().getFormat().getValue() + "." + StorageFacet.P_PATH;
+    return tx.findAssetWithProperty(metadataKeyName, metadataKey, bucket);
   }
 
   private NestedAttributesMap getFormatAttributes(final StorageTx tx, final OrientVertex vertex) {
