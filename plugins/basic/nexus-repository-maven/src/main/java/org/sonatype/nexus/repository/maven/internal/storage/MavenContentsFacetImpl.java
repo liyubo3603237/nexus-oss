@@ -302,7 +302,7 @@ public class MavenContentsFacetImpl
                                              final OrientVertex bucket)
   {
     final String componentKeyName =
-        StorageFacet.P_ATTRIBUTES + "." + getRepository().getFormat().getValue() + P_COMPONENT_KEY;
+        StorageFacet.P_ATTRIBUTES + "." + getRepository().getFormat().getValue() + "." + P_COMPONENT_KEY;
     return tx.findComponentWithProperty(componentKeyName, componentKey, bucket);
   }
 
