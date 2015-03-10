@@ -48,8 +48,6 @@ import org.apache.commons.lang.StringUtils;
 public class ChecksumReconciler
     extends ComponentSupport
 {
-  private static final long MILLIS_IN_A_DAY = 86400000L;
-
   private final Walker walker;
 
   private final DigestCalculatingInspector digestCalculatingInspector;
@@ -60,7 +58,7 @@ public class ChecksumReconciler
 
   private File attributesBaseDir;
 
-  private long modifiedThreshold;
+  private long modifiedSinceMillis;
 
   @Inject
   public ChecksumReconciler(final Walker walker, final DigestCalculatingInspector digestCalculatingInspector)
@@ -77,13 +75,13 @@ public class ChecksumReconciler
   /**
    * Walks the selected sub-tree in the given repository attempting to reconcile their item attribute checksums.
    */
-  public void reconcileChecksums(final Repository repo, final ResourceStoreRequest request, final int sinceDays) {
+  public void reconcileChecksums(final Repository repo, final ResourceStoreRequest request, final long sinceMillis) {
     final WalkerContext context = new DefaultWalkerContext(repo, request);
 
     final String repositoryId = repo.getId();
 
     attributesBaseDir = getAttributesBaseDir(repo);
-    modifiedThreshold = getModifiedThreshold(sinceDays);
+    modifiedSinceMillis = sinceMillis;
 
     if (attributesBaseDir == null) {
       return; // no point walking repository with no local storage
@@ -179,16 +177,6 @@ public class ChecksumReconciler
   }
 
   /**
-   * Calculates the lastModified threshold for attribute files.
-   */
-  private static long getModifiedThreshold(final long modifiedSinceDays) {
-    if (modifiedSinceDays >= 0 && modifiedSinceDays < (System.currentTimeMillis() / MILLIS_IN_A_DAY)) {
-      return System.currentTimeMillis() - (MILLIS_IN_A_DAY * modifiedSinceDays);
-    }
-    return 0;
-  }
-
-  /**
    * Should we attempt checksum reconciliation for the given path?
    */
   private boolean shouldAttemptReconciliation(final String itemPath) {
@@ -196,7 +184,7 @@ public class ChecksumReconciler
       return false; // ignore associated checksum files, we'll fix them when we process the main item
     }
     final File attributesFile = new File(attributesBaseDir, StringUtils.strip(itemPath, "/"));
-    return attributesFile.lastModified() >= modifiedThreshold;
+    return attributesFile.lastModified() >= modifiedSinceMillis;
   }
 
   /**

@@ -29,6 +29,7 @@ import org.sonatype.nexus.tasks.descriptors.ReconcileChecksumsTaskDescriptor;
 import org.sonatype.nexus.util.LinearNumberSequence;
 
 import org.apache.commons.lang.StringUtils;
+import org.joda.time.DateTime;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -63,13 +64,13 @@ public class ReconcileChecksumsTask
     return ReconcileChecksumsTaskDescriptor.RESOURCE_STORE_PATH_FIELD_ID;
   }
 
-  public int getModifiedSinceDays() {
-    final String value = getParameter(ReconcileChecksumsTaskDescriptor.MODIFIED_SINCE_DAYS_FIELD_ID);
-    return StringUtils.isNotBlank(value) ? Integer.parseInt(value) : -1;
+  public long getModifiedSinceMillis() {
+    final String value = getParameter(ReconcileChecksumsTaskDescriptor.MODIFIED_SINCE_DATE_ID);
+    return StringUtils.isNotBlank(value) ? DateTime.parse(value).getMillis() : -1;
   }
 
-  public void setModifiedSinceDays(final int modifiedSinceDays) {
-    addParameter(ReconcileChecksumsTaskDescriptor.MODIFIED_SINCE_DAYS_FIELD_ID, Integer.toString(modifiedSinceDays));
+  public void setModifiedSinceDate(final String modifiedSinceDate) {
+    addParameter(ReconcileChecksumsTaskDescriptor.MODIFIED_SINCE_DATE_ID, modifiedSinceDate);
   }
 
   public int getWalkingLimitTps() {
@@ -114,7 +115,7 @@ public class ReconcileChecksumsTask
     }
 
     for (final Repository repo : targetRepositories) {
-      checksumReconciler.reconcileChecksums(repo, request, getModifiedSinceDays());
+      checksumReconciler.reconcileChecksums(repo, request, getModifiedSinceMillis());
     }
 
     return null;

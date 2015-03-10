@@ -20,6 +20,7 @@ import org.sonatype.nexus.proxy.item.StorageItem;
 import org.sonatype.nexus.proxy.maven.MUtils;
 import org.sonatype.nexus.scheduling.NexusScheduler;
 
+import org.joda.time.DateTime;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -95,7 +96,7 @@ public class ReconcileChecksumsTaskTest
         is("ec91980b1f83604ed72d749eebacea53"));
 
     task.setResourceStorePath("/org/sonatype/");
-    task.setModifiedSinceDays(0);
+    task.setModifiedSinceDate(DateTime.now().plusYears(1).toString("yyyy-MM-dd"));
 
     nexusScheduler.submit("testAffectedSubTree", task).get();
 
@@ -114,7 +115,7 @@ public class ReconcileChecksumsTaskTest
     assertThat(MUtils.readDigestFromFileItem((StorageFileItem) snapshots.retrieveItem(metadataMD5)),
         is("ec91980b1f83604ed72d749eebacea53"));
 
-    task.setModifiedSinceDays(Integer.MAX_VALUE);
+    task.setModifiedSinceDate("2015-01-01");
 
     nexusScheduler.submit("testAffectedSubTree", task).get();
 
