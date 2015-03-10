@@ -25,6 +25,7 @@ import org.sonatype.nexus.proxy.ItemNotFoundException;
 import org.sonatype.nexus.proxy.ResourceStoreRequest;
 import org.sonatype.nexus.proxy.access.Action;
 import org.sonatype.nexus.proxy.attributes.inspectors.DigestCalculatingInspector;
+import org.sonatype.nexus.proxy.maven.ChecksumContentValidator;
 import org.sonatype.nexus.proxy.maven.MUtils;
 import org.sonatype.nexus.proxy.repository.Repository;
 import org.sonatype.nexus.proxy.storage.local.fs.DefaultFSLocalRepositoryStorage;
@@ -113,8 +114,10 @@ public class ChecksumReconciler
    */
   void reconcileItemChecksum(final Repository repo, final StorageFileItem item) throws Exception {
 
-    final String attributeSHA1 = item.getRepositoryItemAttributes().get(DigestCalculatingInspector.DIGEST_SHA1_KEY);
-    if (attributeSHA1 != null) {
+    final String localSHA1 = item.getRepositoryItemAttributes().get(DigestCalculatingInspector.DIGEST_SHA1_KEY);
+    final String remoteSHA1 = item.getRepositoryItemAttributes().get(ChecksumContentValidator.ATTR_REMOTE_SHA1);
+
+    if (localSHA1 != null || remoteSHA1 != null) {
 
       final String itemPath = item.getPath();
       if (shouldAttemptReconciliation(itemPath)) {
@@ -136,11 +139,16 @@ public class ChecksumReconciler
 
         final String affectedSHA1 = DigesterUtils.getDigestAsString(sha1.digest());
 
-        if (attributeSHA1.equals(affectedSHA1)) {
+        if ((localSHA1 != null && localSHA1.equals(affectedSHA1))
+            || (remoteSHA1 != null && remoteSHA1.equals(affectedSHA1))) {
+
           log.info("Reconciling attribute checksums for {}", item);
+
           final RepositoryItemUid uid = item.getRepositoryItemUid();
           uid.getLock().lock(Action.update);
           try {
+            item.getRepositoryItemAttributes().remove(ChecksumContentValidator.ATTR_REMOTE_SHA1);
+            item.getRepositoryItemAttributes().remove(ChecksumContentValidator.ATTR_REMOTE_MD5);
             digestCalculatingInspector.processStorageItem(item);
             repo.getAttributesHandler().storeAttributes(item);
           }
