@@ -313,7 +313,6 @@ public class MavenContentsFacetImpl
   {
     final List<Vertex> vertices = Lists
         .newArrayList(component.getVertices(Direction.IN, StorageFacet.E_PART_OF_COMPONENT));
-    checkState(!vertices.isEmpty());
     final List<OrientVertex> result = Lists.newArrayList();
     for (Vertex v : vertices) {
       if (v instanceof OrientVertex) {
