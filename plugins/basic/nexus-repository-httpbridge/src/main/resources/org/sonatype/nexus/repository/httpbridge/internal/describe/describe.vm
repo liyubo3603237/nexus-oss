@@ -20,6 +20,8 @@
   <link rel="SHORTCUT ICON" href="$nexusUrl/favicon.ico"/>
   <![endif]-->
 
+  <link rel="stylesheet" type="text/css" href="$nexusUrl/static/css/nexus-describe.css?$nexusVersion"/>
+
   #macro(table $map)
     #if($map.isEmpty())
       <p>No entries</p>
@@ -47,7 +49,12 @@
 </head>
 <body>
 
-  <h1>Describe $path</h1>
+<div class="nexus-describe-message">
+  <img src="$nexusUrl/static/images/nexus.png?$nexusVersion"/>
+  <span>DESCRIBE $path</span>
+</div>
+
+<div class="nexus-describe-detail">
 
   <p>
     This page describes the processing of a request made by external client,

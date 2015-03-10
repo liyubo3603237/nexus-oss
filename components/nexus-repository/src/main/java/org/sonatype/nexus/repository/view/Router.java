@@ -17,14 +17,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.sonatype.nexus.repository.Repository;
-import org.sonatype.nexus.repository.internal.describe.Description;
 import org.sonatype.sisu.goodies.common.ComponentSupport;
 
 import com.google.common.collect.Lists;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static org.sonatype.nexus.repository.internal.describe.DescriptionUtils.toMap;
 
 /**
  * View router.
@@ -46,7 +44,7 @@ public class Router
   /**
    * Dispatch request to matching route.
    */
-  public Response dispatch(final Repository repository, final Request request, final Description description)
+  public Response dispatch(final Repository repository, final Request request)
       throws Exception
   {
     checkNotNull(repository);
@@ -54,17 +52,12 @@ public class Router
 
     logRequest(request);
 
+    // Find route and start context
     Context context = new Context(repository, request);
-    try {
-      // Find route and start context
-      Route route = findRoute(context);
-      Response response = context.start(route);
-      logResponse(response);
-      return response;
-    }
-    finally {
-      describeContext(description, context);
-    }
+    Route route = findRoute(context);
+    Response response = context.start(route);
+    logResponse(response);
+    return response;
   }
 
   /**
@@ -123,12 +116,6 @@ public class Router
         }
       }
     }
-  }
-
-  private void describeContext(Description desc, Context context) {
-    desc.topic("Context");
-
-    desc.addTable("Attributes", toMap(context.getAttributes()));
   }
 
   /**

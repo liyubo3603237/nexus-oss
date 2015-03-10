@@ -10,7 +10,7 @@
  * of Sonatype, Inc. Apache Maven is a trademark of the Apache Software Foundation. M2eclipse is a trademark of the
  * Eclipse Foundation. All other trademarks are the property of their respective owners.
  */
-package org.sonatype.nexus.repository.internal.describe;
+package org.sonatype.nexus.repository.httpbridge.internal.describe;
 
 /**
  * Turns a {@link Description} into HTML to be returned to the client.

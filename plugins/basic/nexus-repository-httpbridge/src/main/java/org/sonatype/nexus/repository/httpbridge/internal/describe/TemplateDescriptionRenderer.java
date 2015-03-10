@@ -10,10 +10,9 @@
  * of Sonatype, Inc. Apache Maven is a trademark of the Apache Software Foundation. M2eclipse is a trademark of the
  * Eclipse Foundation. All other trademarks are the property of their respective owners.
  */
-package org.sonatype.nexus.repository.internal.describe;
+package org.sonatype.nexus.repository.httpbridge.internal.describe;
 
 import java.net.URL;
-import java.util.HashMap;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -21,8 +20,6 @@ import javax.inject.Singleton;
 
 import org.sonatype.sisu.goodies.template.TemplateEngine;
 import org.sonatype.sisu.goodies.template.TemplateParameters;
-
-import com.google.common.collect.Maps;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -36,7 +33,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class TemplateDescriptionRenderer
     implements DescriptionRenderer
 {
-  private static final String TEMPLATE_PATH = "describe.vm";
+  private static final String TEMPLATE_RESOURCE = "describe.vm";
 
   private final TemplateEngine templateEngine;
 
@@ -45,7 +42,7 @@ public class TemplateDescriptionRenderer
   @Inject
   public TemplateDescriptionRenderer(final @Named("shared") TemplateEngine templateEngine) {
     this.templateEngine = checkNotNull(templateEngine);
-    template = getClass().getResource(TEMPLATE_PATH);
+    template = getClass().getResource(TEMPLATE_RESOURCE);
   }
 
   @Override
