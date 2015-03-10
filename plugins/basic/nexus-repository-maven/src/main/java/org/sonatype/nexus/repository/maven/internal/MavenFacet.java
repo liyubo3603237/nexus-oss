@@ -14,6 +14,7 @@ package org.sonatype.nexus.repository.maven.internal;
 
 import java.io.IOException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 import org.sonatype.nexus.repository.Facet;
@@ -30,6 +31,10 @@ import org.sonatype.nexus.repository.view.Payload;
 public interface MavenFacet
     extends Facet
 {
+  @Nonnull
+  ArtifactCoordinatesParser getArtifactCoordinatesParser();
+
+  @Nonnull
   VersionPolicy getVersionPolicy();
 
   @Nullable

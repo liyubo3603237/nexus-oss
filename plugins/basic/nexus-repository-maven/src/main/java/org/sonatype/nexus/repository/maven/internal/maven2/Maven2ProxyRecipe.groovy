@@ -116,7 +116,7 @@ class Maven2ProxyRecipe
     Router.Builder builder = new Router.Builder()
 
     builder.route(new Route.Builder()
-        .matcher(new MavenArtifactMatcher(new Maven2ArtifactCoordinatesParser()))
+        .matcher(new MavenArtifactMatcher())
         .handler(timingHandler)
         .handler(securityHandler)
         .handler(proxyHandler)

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import javax.annotation.Nonnull;
@@ -105,19 +106,30 @@ public class MavenFacetImpl
 
   private static final String P_EXT_CHECKSUM = "extChecksum"; // similar to P_CHECKSUM, child map of hashes got externally
 
+  // ==
+
   private final static List<HashAlgorithm> hashAlgorithms = Lists.newArrayList(MD5, SHA1);
+
+  // ==
+
+  private final MimeSupport mimeSupport;
+
+  private final Map<String, ArtifactCoordinatesParser> artifactCoordinatesParsers;
 
   public static final String CONFIG_KEY = "maven";
 
-  private VersionPolicy versionPolicy;
+  // ==
 
-  private final MimeSupport mimeSupport;
+  private ArtifactCoordinatesParser artifactCoordinatesParser;
+
+  private VersionPolicy versionPolicy;
 
   private boolean strictContentTypeValidation = false;
 
   @Inject
-  public MavenFacetImpl(final MimeSupport mimeSupport) {
+  public MavenFacetImpl(final MimeSupport mimeSupport, final Map<String, ArtifactCoordinatesParser> artifactCoordinatesParsers) {
     this.mimeSupport = checkNotNull(mimeSupport);
+    this.artifactCoordinatesParsers = checkNotNull(artifactCoordinatesParsers);
   }
 
   @Override
@@ -127,6 +139,17 @@ public class MavenFacetImpl
     this.versionPolicy = VersionPolicy.valueOf(
         attributes.require("versionPolicy", String.class)
     );
+    this.artifactCoordinatesParser = checkNotNull(
+        artifactCoordinatesParsers.get(getRepository().getFormat().getValue()),
+        "No ArtifactCoordinatesParser for format %s",
+        getRepository().getFormat().getValue()
+    );
+  }
+
+  @Nonnull
+  @Override
+  public ArtifactCoordinatesParser getArtifactCoordinatesParser() {
+    return artifactCoordinatesParser;
   }
 
   @Override
