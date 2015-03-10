@@ -19,7 +19,6 @@ import javax.inject.Named;
 
 import org.sonatype.nexus.repository.content.InvalidContentException;
 import org.sonatype.nexus.repository.maven.internal.policy.ChecksumPolicy;
-import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.proxy.ProxyFacetSupport;
 import org.sonatype.nexus.repository.util.NestedAttributesMap;
 import org.sonatype.nexus.repository.view.Context;
@@ -51,7 +50,7 @@ public class MavenProxyFacet
 
   @Override
   protected Payload getCachedPayload(final Context context) throws IOException {
-    final MavenContentsFacet contentsFacet = getRepository().facet(MavenContentsFacet.class);
+    final MavenFacet contentsFacet = getRepository().facet(MavenFacet.class);
     if (context.getAttributes().contains(ArtifactCoordinates.class)) {
       final ArtifactCoordinates coordinates = context.getAttributes().require(ArtifactCoordinates.class);
       return contentsFacet.getArtifact(coordinates);
@@ -65,7 +64,7 @@ public class MavenProxyFacet
 
   @Override
   protected void store(final Context context, final Payload payload) throws IOException, InvalidContentException {
-    final MavenContentsFacet contentsFacet = getRepository().facet(MavenContentsFacet.class);
+    final MavenFacet contentsFacet = getRepository().facet(MavenFacet.class);
     if (context.getAttributes().contains(ArtifactCoordinates.class)) {
       final ArtifactCoordinates coordinates = context.getAttributes().require(ArtifactCoordinates.class);
       contentsFacet.putArtifact(coordinates, payload);

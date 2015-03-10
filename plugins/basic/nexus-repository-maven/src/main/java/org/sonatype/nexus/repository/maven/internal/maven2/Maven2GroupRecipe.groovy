@@ -25,11 +25,11 @@ import org.sonatype.nexus.repository.Type
 import org.sonatype.nexus.repository.group.GroupFacetImpl
 import org.sonatype.nexus.repository.group.GroupHandler
 import org.sonatype.nexus.repository.maven.internal.MavenArtifactMatcher
+import org.sonatype.nexus.repository.maven.internal.MavenFacetImpl
 import org.sonatype.nexus.repository.maven.internal.MavenMetadataMatcher
 import org.sonatype.nexus.repository.maven.internal.MetadataMergeHandler
 import org.sonatype.nexus.repository.security.SecurityHandler
 import org.sonatype.nexus.repository.types.GroupType
-import org.sonatype.nexus.repository.types.HostedType
 import org.sonatype.nexus.repository.view.ConfigurableViewFacet
 import org.sonatype.nexus.repository.view.Route
 import org.sonatype.nexus.repository.view.Router
@@ -69,6 +69,9 @@ class Maven2GroupRecipe
   GroupHandler groupHandler
 
   @Inject
+  Provider<MavenFacetImpl> mavenFacet
+
+  @Inject
   MetadataMergeHandler metadataMergeHandler
 
   @Inject
@@ -82,6 +85,7 @@ class Maven2GroupRecipe
   void apply(@Nonnull final Repository repository) throws Exception {
     repository.attach(securityFacet.get())
     repository.attach(groupFacet.get());
+    repository.attach(mavenFacet.get());
     repository.attach(configure(viewFacet.get()))
   }
 

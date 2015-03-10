@@ -12,8 +12,14 @@
  */
 package org.sonatype.nexus.repository.maven.internal;
 
+import java.io.IOException;
+
+import javax.annotation.Nullable;
+
 import org.sonatype.nexus.repository.Facet;
+import org.sonatype.nexus.repository.content.InvalidContentException;
 import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy;
+import org.sonatype.nexus.repository.view.Payload;
 
 /**
  * Maven facet, present on all Maven repositories.
@@ -25,4 +31,18 @@ public interface MavenFacet
     extends Facet
 {
   VersionPolicy getVersionPolicy();
+
+  @Nullable
+  Payload getArtifact(ArtifactCoordinates coordinates) throws IOException;
+
+  void putArtifact(ArtifactCoordinates coordinates, Payload content) throws IOException, InvalidContentException;
+
+  boolean deleteArtifact(ArtifactCoordinates coordinates) throws IOException;
+
+  @Nullable
+  Payload getMetadata(Coordinates coordinates) throws IOException;
+
+  void putMetadata(Coordinates coordinates, Payload content) throws IOException, InvalidContentException;
+
+  boolean deleteMetadata(Coordinates coordinates) throws IOException;
 }

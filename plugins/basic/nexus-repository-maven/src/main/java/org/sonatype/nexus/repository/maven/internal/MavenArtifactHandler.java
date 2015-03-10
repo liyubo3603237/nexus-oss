@@ -18,7 +18,6 @@ import javax.inject.Singleton;
 
 import org.sonatype.nexus.repository.http.HttpResponses;
 import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy;
-import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Handler;
 import org.sonatype.nexus.repository.view.Payload;
@@ -44,7 +43,7 @@ public class MavenArtifactHandler
   @Override
   public Response handle(final @Nonnull Context context) throws Exception {
     final String action = context.getRequest().getAction();
-    final MavenContentsFacet mavenContentsFacet = context.getRepository().facet(MavenContentsFacet.class);
+    final MavenFacet mavenFacet = context.getRepository().facet(MavenFacet.class);
     final ArtifactCoordinates coordinates = context.getAttributes().require(ArtifactCoordinates.class);
 
     final VersionPolicy versionPolicy = context.getRepository().facet(MavenFacet.class).getVersionPolicy();
@@ -55,7 +54,7 @@ public class MavenArtifactHandler
     }
     switch (action) {
       case GET: {
-        final Payload content = mavenContentsFacet.getArtifact(coordinates);
+        final Payload content = mavenFacet.getArtifact(coordinates);
         if (content == null) {
           return HttpResponses.notFound(coordinates.getPath());
         }
@@ -63,12 +62,12 @@ public class MavenArtifactHandler
       }
 
       case PUT: {
-        mavenContentsFacet.putArtifact(coordinates, context.getRequest().getPayload());
+        mavenFacet.putArtifact(coordinates, context.getRequest().getPayload());
         return HttpResponses.created();
       }
 
       case DELETE: {
-        final boolean deleted = mavenContentsFacet.deleteArtifact(coordinates);
+        final boolean deleted = mavenFacet.deleteArtifact(coordinates);
         if (!deleted) {
           return HttpResponses.notFound(coordinates.getPath());
         }
