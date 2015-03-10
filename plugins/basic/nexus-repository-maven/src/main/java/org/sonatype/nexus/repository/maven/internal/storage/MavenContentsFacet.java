@@ -19,8 +19,8 @@ import javax.annotation.Nullable;
 import org.sonatype.nexus.repository.Facet;
 import org.sonatype.nexus.repository.content.InvalidContentException;
 import org.sonatype.nexus.repository.maven.internal.ArtifactCoordinates;
-import org.sonatype.nexus.repository.maven.internal.Content;
 import org.sonatype.nexus.repository.maven.internal.Coordinates;
+import org.sonatype.nexus.repository.view.Payload;
 
 /**
  * Provides persistent storage for Maven metadata.
@@ -32,16 +32,16 @@ public interface MavenContentsFacet
     extends Facet
 {
   @Nullable
-  Content getArtifact(ArtifactCoordinates coordinates) throws IOException;
+  Payload getArtifact(ArtifactCoordinates coordinates) throws IOException;
 
-  void putArtifact(ArtifactCoordinates coordinates, Content content) throws IOException, InvalidContentException;
+  void putArtifact(ArtifactCoordinates coordinates, Payload content) throws IOException, InvalidContentException;
 
   boolean deleteArtifact(ArtifactCoordinates coordinates) throws IOException;
 
   @Nullable
-  Content getMetadata(Coordinates coordinates) throws IOException;
+  Payload getMetadata(Coordinates coordinates) throws IOException;
 
-  void putMetadata(Coordinates coordinates, Content content) throws IOException, InvalidContentException;
+  void putMetadata(Coordinates coordinates, Payload content) throws IOException, InvalidContentException;
 
   boolean deleteMetadata(Coordinates coordinates) throws IOException;
 }

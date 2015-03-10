@@ -21,16 +21,13 @@ import org.sonatype.nexus.repository.maven.internal.policy.VersionPolicy;
 import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Handler;
+import org.sonatype.nexus.repository.view.Payload;
 import org.sonatype.nexus.repository.view.Response;
 import org.sonatype.sisu.goodies.common.ComponentSupport;
-
-import org.joda.time.DateTime;
 
 import static org.sonatype.nexus.repository.http.HttpMethods.DELETE;
 import static org.sonatype.nexus.repository.http.HttpMethods.GET;
 import static org.sonatype.nexus.repository.http.HttpMethods.PUT;
-import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toContent;
-import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toPayload;
 
 /**
  * Maven artifact handler.
@@ -58,16 +55,15 @@ public class MavenArtifactHandler
     }
     switch (action) {
       case GET: {
-        final Content content = mavenContentsFacet.getArtifact(coordinates);
+        final Payload content = mavenContentsFacet.getArtifact(coordinates);
         if (content == null) {
           return HttpResponses.notFound(coordinates.getPath());
         }
-        return HttpResponses.ok(toPayload(content));
+        return HttpResponses.ok(content);
       }
 
       case PUT: {
-        final Content content = toContent(context.getRequest().getPayload(), new DateTime());
-        mavenContentsFacet.putArtifact(coordinates, content);
+        mavenContentsFacet.putArtifact(coordinates, context.getRequest().getPayload());
         return HttpResponses.created();
       }
 

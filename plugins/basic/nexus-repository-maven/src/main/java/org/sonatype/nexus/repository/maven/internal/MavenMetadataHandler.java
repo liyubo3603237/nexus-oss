@@ -20,16 +20,13 @@ import org.sonatype.nexus.repository.http.HttpResponses;
 import org.sonatype.nexus.repository.maven.internal.storage.MavenContentsFacet;
 import org.sonatype.nexus.repository.view.Context;
 import org.sonatype.nexus.repository.view.Handler;
+import org.sonatype.nexus.repository.view.Payload;
 import org.sonatype.nexus.repository.view.Response;
 import org.sonatype.sisu.goodies.common.ComponentSupport;
-
-import org.joda.time.DateTime;
 
 import static org.sonatype.nexus.repository.http.HttpMethods.DELETE;
 import static org.sonatype.nexus.repository.http.HttpMethods.GET;
 import static org.sonatype.nexus.repository.http.HttpMethods.PUT;
-import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toContent;
-import static org.sonatype.nexus.repository.maven.internal.ContentHelper.toPayload;
 
 /**
  * Maven metadata handler.
@@ -50,16 +47,15 @@ public class MavenMetadataHandler
     final Coordinates coordinates = context.getAttributes().require(Coordinates.class);
     switch (action) {
       case GET: {
-        final Content content = mavenContentsFacet.getMetadata(coordinates);
+        final Payload content = mavenContentsFacet.getMetadata(coordinates);
         if (content == null) {
           return HttpResponses.notFound(coordinates.getPath());
         }
-        return HttpResponses.ok(toPayload(content));
+        return HttpResponses.ok(content);
       }
 
       case PUT: {
-        final Content content = toContent(context.getRequest().getPayload(), new DateTime());
-        mavenContentsFacet.putMetadata(coordinates, content);
+        mavenContentsFacet.putMetadata(coordinates, context.getRequest().getPayload());
         return HttpResponses.created();
       }
 
