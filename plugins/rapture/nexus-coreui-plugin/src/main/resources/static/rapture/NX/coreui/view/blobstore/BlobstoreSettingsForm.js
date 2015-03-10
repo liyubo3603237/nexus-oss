@@ -37,7 +37,7 @@ Ext.define('NX.coreui.view.blobstore.BlobstoreSettingsForm', {
   initComponent: function() {
     var me = this;
 
-    me.editableCondition = me.editableCondition || NX.Conditions.isPermitted('nexus:blobstores', 'update');
+    me.editableCondition = me.editableCondition || NX.Conditions.never();
 
     me.items = [
       {
@@ -52,7 +52,7 @@ Ext.define('NX.coreui.view.blobstore.BlobstoreSettingsForm', {
         name: 'attributes',
         fieldLabel: NX.I18n.get('ADMIN_BLOBSTORES_SETTINGS_ATTRIBUTES'),
         height: 300,
-        allowBlank: true,
+        allowBlank: false,
         cls: 'nx-log-viewer-field'
       }
     ];
