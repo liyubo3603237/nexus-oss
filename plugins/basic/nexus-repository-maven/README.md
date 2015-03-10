@@ -19,7 +19,6 @@
     "strictContentTypeValidation" : false
   },
   "maven" : {
-    "repositoryPolicy" : "release",
-    "redeployPolicy" : "disallow"
+    "versionPolicy" : "release"
   }
 }

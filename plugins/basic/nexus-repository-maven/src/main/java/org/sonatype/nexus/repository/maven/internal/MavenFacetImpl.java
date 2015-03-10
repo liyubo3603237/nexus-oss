@@ -34,7 +34,9 @@ public class MavenFacetImpl
   protected void doConfigure() throws Exception {
     super.doConfigure();
     NestedAttributesMap attributes = getRepository().getConfiguration().attributes(CONFIG_KEY);
-    this.versionPolicy = VersionPolicy.valueOf(attributes.require("repositoryPolicy", String.class));
+    this.versionPolicy = VersionPolicy.valueOf(
+        attributes.require("versionPolicy", String.class)
+    );
   }
 
   @Override
